@@ -16,11 +16,11 @@ def main():
     epilog = '''
 使用示例:
   python server_check_optimized.py -i servers.xlsx -c public -o result.xlsx
-  python server_check_optimized.py -i servers.xlsx -c public -w 300 -t 3
+  python server_check_optimized.py -i servers.xlsx -c public -w 500 -t 3
   python server_check_optimized.py -i servers.xlsx -c public --no-async
 
 性能优化参数建议（2000-3000台服务器）:
-  -w/--workers: 200-500（并发数，根据网络和服务器性能调整）
+  -w/--workers: 300-800（并发数，根据网络和服务器性能调整，默认500）
   -t/--timeout: 2-5秒（建议比原版本更短，因为有重试机制）
   -r/--retries: 1-2次（减少重试，快速失败）
 
@@ -35,8 +35,8 @@ def main():
 1. 请确保已安装优化依赖: pip install aiosnmp aiohttp
 2. 优化版本默认使用异步SNMP，性能提升显著
 3. 如遇兼容性问题，可使用 --no-async 参数强制使用同步模式
-4. 对于2000-3000台服务器，建议并发数设置为300-500
-5. 预计3000台服务器巡检时间: 5-8分钟（根据网络状况）
+4. 对于2000-3000台服务器，建议并发数设置为500-800
+5. 预计3000台服务器巡检时间: 4-6分钟（根据网络状况）
     '''
 
     parser = create_base_parser(

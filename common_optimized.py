@@ -531,7 +531,7 @@ class AsyncServerChecker:
 
     def __init__(self, ip_list: List[str], community: str = 'public', 
                  port: int = 161, timeout: float = 5.0, retries: int = 1,
-                 max_concurrent: int = 200, check_type: str = 'all'):
+                 max_concurrent: int = 500, check_type: str = 'all'):
         self.ip_list = ip_list
         self.community = community
         self.port = port
@@ -1085,8 +1085,8 @@ def create_base_parser(description: str, epilog: str = '') -> argparse.ArgumentP
                         help='SNMP超时时间（秒，默认: 3.0，优化版本建议更短）')
     parser.add_argument('-r', '--retries', type=int, default=1,
                         help='SNMP重试次数（默认: 1，优化版本建议更少）')
-    parser.add_argument('-w', '--workers', type=int, default=300,
-                        help='最大并发数（默认: 300，建议200-500用于大规模巡检）')
+    parser.add_argument('-w', '--workers', type=int, default=500,
+                        help='最大并发数（默认: 500，建议300-800用于大规模巡检）')
     parser.add_argument('-o', '--output', default=None,
                         help='输出Excel文件路径（默认: 自动生成时间戳命名）')
     parser.add_argument('--no-async', action='store_true',
