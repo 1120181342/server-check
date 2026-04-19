@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>健身房人员信息登记系统 - 登录</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="login-page">
+    <div class="login-container">
+        <div class="login-header">
+            <h1>🏋️ 健身房人员信息登记系统</h1>
+            <p>Gym Management System</p>
+        </div>
+        <div class="login-form">
+            <form id="loginForm">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" required>
+                </div>
+                <div class="form-group">
+                    <button type="submit" class="btn btn-primary btn-block" id="loginBtn">
+                        登 录
+                    </button>
+                </div>
+            </form>
+            <div class="login-hint">
+                <p>测试账号：</p>
+                <p>管理员：admin / admin123</p>
+                <p>教练：coach1 / coach123</p>
+                <p>学员：student1 / student123</p>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const token = Utils.getStorage('access_token');
+            if (token) {
+                const role = Utils.getStorage('user_role');
+                if (role === 'admin') {
+                    window.location.href = 'admin.html';
+                } else if (role === 'coach') {
+                    window.location.href = 'coach.html';
+                } else if (role === 'student') {
+                    window.location.href = 'student.html';
+                }
+            }
+            
+            const loginForm = document.getElementById('loginForm');
+            const loginBtn = document.getElementById('loginBtn');
+            
+            loginForm.addEventListener('submit', async function(e) {
+                e.preventDefault();
+                
+                const username = document.getElementById('username').value.trim();
+                const password = document.getElementById('password').value;
+                
+                if (!username || !password) {
+                    Utils.showToast('请输入用户名和密码', 'error');
+                    return;
+                }
+                
+                loginBtn.disabled = true;
+                loginBtn.innerHTML = '登录中...';
+                
+                try {
+                    const result = await API.login(username, password);
+                    
+                    if (result.code === 200) {
+                        const data = result.data;
+                        Utils.setStorage('access_token', data.access_token);
+                        Utils.setStorage('refresh_token', data.refresh_token);
+                        Utils.setStorage('user_info', data.user_info);
+                        Utils.setStorage('user_role', data.user_info.role_name);
+                        Utils.setStorage('user_id', data.user_info.id);
+                        
+                        Utils.showToast('登录成功', 'success');
+                        
+                        setTimeout(() => {
+                            const role = data.user_info.role_name;
+                            if (role === 'admin') {
+                                window.location.href = 'admin.html';
+                            } else if (role === 'coach') {
+                                window.location.href = 'coach.html';
+                            } else if (role === 'student') {
+                                window.location.href = 'student.html';
+                            }
+                        }, 500);
+                    } else {
+                        Utils.showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    Utils.showToast('登录失败，请稍后重试', 'error');
+                    console.error(error);
+                } finally {
+                    loginBtn.disabled = false;
+                    loginBtn.innerHTML = '登 录';
+                }
+            });
+        });
+    </script>
+</body>
+</html>
