@@ -1,0 +1,1799 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>管理员端 - 健身房人员信息登记系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏋️ 健身房管理系统</h2>
+                <p id="sidebarRole">管理员端</p>
+            </div>
+            <nav class="sidebar-menu">
+                <div class="menu-item active" data-section="dashboard">
+                    📊 数据统计
+                </div>
+                <div class="menu-item" data-section="users">
+                    👥 用户管理
+                </div>
+                <div class="menu-item" data-section="coaches">
+                    🏃 教练管理
+                </div>
+                <div class="menu-item" data-section="students">
+                    👤 学员管理
+                </div>
+                <div class="menu-item" data-section="courses">
+                    📚 课程管理
+                </div>
+                <div class="menu-item" data-section="schedules">
+                    📅 排期管理
+                </div>
+                <div class="menu-item" data-section="grades">
+                    📝 成绩查询
+                </div>
+                <div class="menu-item" data-section="checkins">
+                    ⏰ 打卡记录
+                </div>
+                <div class="menu-item" data-section="logs">
+                    📋 操作日志
+                </div>
+                <div class="menu-item" id="logoutBtn">
+                    🚪 退出登录
+                </div>
+            </nav>
+        </aside>
+        
+        <main class="main-content">
+            <header class="header">
+                <div class="header-title">
+                    <h1 id="pageTitle">数据统计</h1>
+                    <p id="pageSubtitle">系统数据概览</p>
+                </div>
+                <div class="header-user">
+                    <div class="user-info">
+                        <div class="user-name" id="userName">--</div>
+                        <div class="user-role" id="userRole">--</div>
+                    </div>
+                </div>
+            </header>
+            
+            <div class="page-container">
+                <section class="page-section active" id="section-dashboard">
+                    <div class="section-header">
+                        <h2>数据统计</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTotalUsers">0</div>
+                            <div class="stat-label">总用户数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTotalCoaches">0</div>
+                            <div class="stat-label">教练人数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTotalStudents">0</div>
+                            <div class="stat-label">学员人数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTotalCourses">0</div>
+                            <div class="stat-label">课程数量</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTodayCheckins">0</div>
+                            <div class="stat-label">今日打卡</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTodayGrades">0</div>
+                            <div class="stat-label">今日成绩登记</div>
+                        </div>
+                    </div>
+                    <div class="stats-grid" style="margin-top: 20px;">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statMembershipBasic">0</div>
+                            <div class="stat-label">基础会员</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statMembershipPremium">0</div>
+                            <div class="stat-label">高级会员</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statMembershipVip">0</div>
+                            <div class="stat-label">VIP会员</div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="page-section" id="section-users">
+                    <div class="section-header">
+                        <h2>用户管理</h2>
+                        <button class="btn btn-primary" id="addUserBtn">新增用户</button>
+                    </div>
+                    <div class="search-form">
+                        <input type="text" id="userKeyword" placeholder="搜索用户名/姓名/手机号">
+                        <select id="userRole">
+                            <option value="">所有角色</option>
+                            <option value="3">学员</option>
+                            <option value="2">教练</option>
+                            <option value="1">管理员</option>
+                        </select>
+                        <select id="userStatus">
+                            <option value="">所有状态</option>
+                            <option value="1">启用</option>
+                            <option value="0">禁用</option>
+                        </select>
+                        <button class="btn btn-primary" id="searchUserBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetUserSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>用户名</th>
+                                    <th>真实姓名</th>
+                                    <th>角色</th>
+                                    <th>手机号</th>
+                                    <th>邮箱</th>
+                                    <th>状态</th>
+                                    <th>创建时间</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="userTableBody">
+                                <tr>
+                                    <td colspan="9" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="userPagination"></div>
+                </section>
+                
+                <section class="page-section" id="section-coaches">
+                    <div class="section-header">
+                        <h2>教练管理</h2>
+                    </div>
+                    <div class="search-form">
+                        <input type="text" id="coachKeyword" placeholder="搜索教练姓名/手机号">
+                        <button class="btn btn-primary" id="searchCoachBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetCoachSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>姓名</th>
+                                    <th>手机号</th>
+                                    <th>专长</th>
+                                    <th>从业年限</th>
+                                    <th>学员数</th>
+                                    <th>课程数</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="coachTableBody">
+                                <tr>
+                                    <td colspan="8" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="coachPagination"></div>
+                </section>
+                
+                <section class="page-section" id="section-students">
+                    <div class="section-header">
+                        <h2>学员管理</h2>
+                    </div>
+                    <div class="search-form">
+                        <input type="text" id="studentKeyword" placeholder="搜索学员姓名/手机号">
+                        <select id="studentCoach">
+                            <option value="">所有教练</option>
+                        </select>
+                        <select id="studentMembership">
+                            <option value="">所有会员等级</option>
+                            <option value="basic">基础会员</option>
+                            <option value="premium">高级会员</option>
+                            <option value="vip">VIP会员</option>
+                        </select>
+                        <button class="btn btn-primary" id="searchStudentBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetStudentSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>姓名</th>
+                                    <th>手机号</th>
+                                    <th>所属教练</th>
+                                    <th>会员等级</th>
+                                    <th>入会日期</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="studentTableBody">
+                                <tr>
+                                    <td colspan="7" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="studentPagination"></div>
+                </section>
+                
+                <section class="page-section" id="section-courses">
+                    <div class="section-header">
+                        <h2>课程管理</h2>
+                        <button class="btn btn-primary" id="addCourseBtn">新增课程</button>
+                    </div>
+                    <div class="search-form">
+                        <input type="text" id="courseKeyword" placeholder="搜索课程名称">
+                        <select id="courseType">
+                            <option value="">所有类型</option>
+                            <option value="private">私教课</option>
+                            <option value="group">团课</option>
+                        </select>
+                        <select id="courseStatus">
+                            <option value="">所有状态</option>
+                            <option value="1">启用</option>
+                            <option value="0">禁用</option>
+                        </select>
+                        <button class="btn btn-primary" id="searchCourseBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetCourseSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>课程名称</th>
+                                    <th>授课教练</th>
+                                    <th>课程类型</th>
+                                    <th>时长</th>
+                                    <th>最大人数</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="courseTableBody">
+                                <tr>
+                                    <td colspan="8" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="coursePagination"></div>
+                </section>
+                
+                <section class="page-section" id="section-schedules">
+                    <div class="section-header">
+                        <h2>排期管理</h2>
+                        <button class="btn btn-primary" id="addScheduleBtn">新增排期</button>
+                    </div>
+                    <div class="search-form">
+                        <input type="date" id="scheduleDate">
+                        <select id="scheduleStatus">
+                            <option value="">所有状态</option>
+                            <option value="scheduled">已排期</option>
+                            <option value="ongoing">进行中</option>
+                            <option value="completed">已完成</option>
+                            <option value="cancelled">已取消</option>
+                        </select>
+                        <button class="btn btn-primary" id="searchScheduleBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetScheduleSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>课程名称</th>
+                                    <th>教练</th>
+                                    <th>上课日期</th>
+                                    <th>开始时间</th>
+                                    <th>结束时间</th>
+                                    <th>当前人数</th>
+                                    <th>状态</th>
+                                </tr>
+                            </thead>
+                            <tbody id="scheduleTableBody">
+                                <tr>
+                                    <td colspan="8" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="schedulePagination"></div>
+                </section>
+                
+                <section class="page-section" id="section-grades">
+                    <div class="section-header">
+                        <h2>成绩查询</h2>
+                    </div>
+                    <div class="search-form">
+                        <input type="text" id="gradeKeyword" placeholder="搜索学员姓名">
+                        <select id="gradeType">
+                            <option value="">所有类型</option>
+                            <option value="physical">体能成绩</option>
+                            <option value="skill">技能成绩</option>
+                            <option value="overall">综合成绩</option>
+                            <option value="attendance">考勤成绩</option>
+                        </select>
+                        <input type="date" id="gradeStartDate">
+                        <span>至</span>
+                        <input type="date" id="gradeEndDate">
+                        <button class="btn btn-primary" id="searchGradeBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetGradeSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>学员姓名</th>
+                                    <th>教练</th>
+                                    <th>成绩类型</th>
+                                    <th>分数</th>
+                                    <th>满分</th>
+                                    <th>评价日期</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gradeTableBody">
+                                <tr>
+                                    <td colspan="8" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="gradePagination"></div>
+                </section>
+                
+                <section class="page-section" id="section-checkins">
+                    <div class="section-header">
+                        <h2>打卡记录</h2>
+                    </div>
+                    <div class="search-form">
+                        <select id="checkinType">
+                            <option value="">所有类型</option>
+                            <option value="class">上课打卡</option>
+                            <option value="gym">健身房打卡</option>
+                            <option value="leave">请假</option>
+                        </select>
+                        <input type="date" id="checkinStartDate">
+                        <span>至</span>
+                        <input type="date" id="checkinEndDate">
+                        <button class="btn btn-primary" id="searchCheckinBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetCheckinSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>用户</th>
+                                    <th>打卡时间</th>
+                                    <th>打卡类型</th>
+                                    <th>状态</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody id="checkinTableBody">
+                                <tr>
+                                    <td colspan="6" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="checkinPagination"></div>
+                </section>
+                
+                <section class="page-section" id="section-logs">
+                    <div class="section-header">
+                        <h2>操作日志</h2>
+                    </div>
+                    <div class="search-form">
+                        <input type="text" id="logModule" placeholder="搜索模块">
+                        <input type="text" id="logOperation" placeholder="搜索操作">
+                        <input type="date" id="logStartDate">
+                        <span>至</span>
+                        <input type="date" id="logEndDate">
+                        <button class="btn btn-primary" id="searchLogBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetLogSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>ID</th>
+                                    <th>操作用户</th>
+                                    <th>操作名称</th>
+                                    <th>模块</th>
+                                    <th>操作时间</th>
+                                    <th>IP地址</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logTableBody">
+                                <tr>
+                                    <td colspan="7" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="logPagination"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+    
+    <div class="modal" id="addUserModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>新增用户</h3>
+                <button class="modal-close" onclick="closeModal('addUserModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addUserForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>用户名 *</label>
+                            <input type="text" id="addUserUsername" placeholder="请输入用户名" required>
+                        </div>
+                        <div class="form-group">
+                            <label>密码</label>
+                            <input type="password" id="addUserPassword" placeholder="默认123456">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>真实姓名 *</label>
+                            <input type="text" id="addUserRealName" placeholder="请输入真实姓名" required>
+                        </div>
+                        <div class="form-group">
+                            <label>角色 *</label>
+                            <select id="addUserRole" required onchange="toggleRoleFields()">
+                                <option value="">请选择角色</option>
+                                <option value="3">学员</option>
+                                <option value="2">教练</option>
+                                <option value="1">管理员</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>手机号</label>
+                            <input type="text" id="addUserPhone" placeholder="请输入手机号">
+                        </div>
+                        <div class="form-group">
+                            <label>邮箱</label>
+                            <input type="email" id="addUserEmail" placeholder="请输入邮箱">
+                        </div>
+                    </div>
+                    <div id="coachFields" style="display: none;">
+                        <hr style="margin: 15px 0; border: none; border-top: 1px solid #eee;">
+                        <h4 style="margin-bottom: 15px;">教练信息</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>专长领域</label>
+                                <input type="text" id="addCoachSpeciality" placeholder="如：健身指导、力量训练">
+                            </div>
+                            <div class="form-group">
+                                <label>从业年限</label>
+                                <input type="number" id="addCoachExperience" min="0" placeholder="请输入从业年限">
+                            </div>
+                        </div>
+                        <div class="form-group">
+                            <label>资质证书</label>
+                            <input type="text" id="addCoachCertification" placeholder="如：国家一级健身指导员">
+                        </div>
+                        <div class="form-group">
+                            <label>个人简介</label>
+                            <textarea id="addCoachBio" placeholder="请输入个人简介"></textarea>
+                        </div>
+                    </div>
+                    <div id="studentFields" style="display: none;">
+                        <hr style="margin: 15px 0; border: none; border-top: 1px solid #eee;">
+                        <h4 style="margin-bottom: 15px;">学员信息</h4>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>所属教练</label>
+                                <select id="addStudentCoach">
+                                    <option value="">暂不分配</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>会员等级</label>
+                                <select id="addStudentMembership">
+                                    <option value="basic">基础会员</option>
+                                    <option value="premium">高级会员</option>
+                                    <option value="vip">VIP会员</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>身高 (cm)</label>
+                                <input type="number" id="addStudentHeight" step="0.01" min="0" placeholder="请输入身高">
+                            </div>
+                            <div class="form-group">
+                                <label>体重 (kg)</label>
+                                <input type="number" id="addStudentWeight" step="0.01" min="0" placeholder="请输入体重">
+                            </div>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label>出生日期</label>
+                                <input type="date" id="addStudentBirthDate">
+                            </div>
+                            <div class="form-group">
+                                <label>会员到期日期</label>
+                                <input type="date" id="addStudentExpireDate">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addUserModal')">取消</button>
+                <button class="btn btn-primary" id="saveUserBtn">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="editUserModal">
+        <div class="modal-content" style="max-width: 700px;">
+            <div class="modal-header">
+                <h3>编辑用户</h3>
+                <button class="modal-close" onclick="closeModal('editUserModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editUserForm">
+                    <input type="hidden" id="editUserId">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>真实姓名</label>
+                            <input type="text" id="editUserRealName" placeholder="请输入真实姓名">
+                        </div>
+                        <div class="form-group">
+                            <label>手机号</label>
+                            <input type="text" id="editUserPhone" placeholder="请输入手机号">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>邮箱</label>
+                            <input type="email" id="editUserEmail" placeholder="请输入邮箱">
+                        </div>
+                        <div class="form-group">
+                            <label>状态</label>
+                            <select id="editUserStatus">
+                                <option value="1">启用</option>
+                                <option value="0">禁用</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>新密码（不修改请留空）</label>
+                        <input type="password" id="editUserPassword" placeholder="请输入新密码">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editUserModal')">取消</button>
+                <button class="btn btn-primary" id="updateUserBtn">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="addCourseModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>新增课程</h3>
+                <button class="modal-close" onclick="closeModal('addCourseModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addCourseForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>课程名称 *</label>
+                            <input type="text" id="addCourseName" placeholder="请输入课程名称" required>
+                        </div>
+                        <div class="form-group">
+                            <label>授课教练 *</label>
+                            <select id="addCourseCoach" required>
+                                <option value="">请选择教练</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>课程类型</label>
+                            <select id="addCourseType">
+                                <option value="private">私教课</option>
+                                <option value="group">团课</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>课程时长（分钟）</label>
+                            <input type="number" id="addCourseDuration" min="1" value="60" placeholder="请输入课程时长">
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>最大人数</label>
+                        <input type="number" id="addCourseMaxStudents" min="1" value="1" placeholder="请输入最大人数">
+                    </div>
+                    <div class="form-group">
+                        <label>课程描述</label>
+                        <textarea id="addCourseDescription" placeholder="请输入课程描述"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addCourseModal')">取消</button>
+                <button class="btn btn-primary" id="saveCourseBtn">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="addScheduleModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>新增排期</h3>
+                <button class="modal-close" onclick="closeModal('addScheduleModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="addScheduleForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>选择课程 *</label>
+                            <select id="addScheduleCourse" required onchange="onCourseChange()">
+                                <option value="">请选择课程</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>上课日期 *</label>
+                            <input type="date" id="addScheduleDate" required>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>开始时间 *</label>
+                            <input type="time" id="addScheduleStartTime" required>
+                        </div>
+                        <div class="form-group">
+                            <label>结束时间 *</label>
+                            <input type="time" id="addScheduleEndTime" required>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label>上课地点</label>
+                        <input type="text" id="addScheduleLocation" placeholder="如：私教1室、操课厅">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('addScheduleModal')">取消</button>
+                <button class="btn btn-primary" id="saveScheduleBtn">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="logDetailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>日志详情</h3>
+                <button class="modal-close" onclick="closeModal('logDetailModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="logDetailBody">
+                <div class="loading">加载中...</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('logDetailModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="gradeDetailModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>成绩详情</h3>
+                <button class="modal-close" onclick="closeModal('gradeDetailModal')">&times;</button>
+            </div>
+            <div class="modal-body" id="gradeDetailBody">
+                <div class="loading">加载中...</div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('gradeDetailModal')">关闭</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        let currentUser = null;
+        let currentSection = 'dashboard';
+        let userPage = 1;
+        let coachPage = 1;
+        let studentPage = 1;
+        let coursePage = 1;
+        let schedulePage = 1;
+        let gradePage = 1;
+        let checkinPage = 1;
+        let logPage = 1;
+        const perPage = 10;
+        
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
+        function toggleRoleFields() {
+            const role = document.getElementById('addUserRole').value;
+            document.getElementById('coachFields').style.display = role === '2' ? 'block' : 'none';
+            document.getElementById('studentFields').style.display = role === '3' ? 'block' : 'none';
+        }
+        
+        function getStatusBadge(status) {
+            return status === 1 ? '<span class="badge badge-success">启用</span>' : '<span class="badge badge-danger">禁用</span>';
+        }
+        
+        function getMembershipBadge(level) {
+            const badges = {
+                'basic': '<span class="badge badge-secondary">基础会员</span>',
+                'premium': '<span class="badge badge-primary">高级会员</span>',
+                'vip': '<span class="badge badge-warning">VIP会员</span>'
+            };
+            return badges[level] || level;
+        }
+        
+        function getCourseTypeLabel(type) {
+            return type === 'private' ? '私教课' : '团课';
+        }
+        
+        function getScheduleStatusBadge(status) {
+            const badges = {
+                'scheduled': '<span class="badge badge-info">已排期</span>',
+                'ongoing': '<span class="badge badge-primary">进行中</span>',
+                'completed': '<span class="badge badge-success">已完成</span>',
+                'cancelled': '<span class="badge badge-danger">已取消</span>'
+            };
+            return badges[status] || status;
+        }
+        
+        function getCheckinTypeLabel(type) {
+            const labels = {
+                'class': '上课打卡',
+                'gym': '健身房打卡',
+                'leave': '请假'
+            };
+            return labels[type] || type;
+        }
+        
+        function getCheckinStatusBadge(status) {
+            const badges = {
+                'success': '<span class="badge badge-success">正常</span>',
+                'late': '<span class="badge badge-warning">迟到</span>',
+                'early': '<span class="badge badge-info">早退</span>',
+                'absent': '<span class="badge badge-danger">缺勤</span>'
+            };
+            return badges[status] || status;
+        }
+        
+        function getGradeTypeLabel(type) {
+            const labels = {
+                'physical': '体能成绩',
+                'skill': '技能成绩',
+                'overall': '综合成绩',
+                'attendance': '考勤成绩'
+            };
+            return labels[type] || type;
+        }
+        
+        async function loadDashboard() {
+            try {
+                const result = await API.getDashboardStats();
+                if (result.code === 200) {
+                    const data = result.data;
+                    document.getElementById('statTotalUsers').textContent = data.total_users;
+                    document.getElementById('statTotalCoaches').textContent = data.total_coaches;
+                    document.getElementById('statTotalStudents').textContent = data.total_students;
+                    document.getElementById('statTotalCourses').textContent = data.total_courses;
+                    document.getElementById('statTodayCheckins').textContent = data.today_check_ins;
+                    document.getElementById('statTodayGrades').textContent = data.today_grades;
+                    document.getElementById('statMembershipBasic').textContent = data.membership_distribution.basic;
+                    document.getElementById('statMembershipPremium').textContent = data.membership_distribution.premium;
+                    document.getElementById('statMembershipVip').textContent = data.membership_distribution.vip;
+                }
+            } catch (error) {
+                console.error('加载统计数据失败:', error);
+            }
+        }
+        
+        async function loadUsers() {
+            try {
+                const keyword = document.getElementById('userKeyword').value.trim();
+                const roleId = document.getElementById('userRole').value;
+                const status = document.getElementById('userStatus').value;
+                
+                const params = { page: userPage, per_page: perPage };
+                if (keyword) params.keyword = keyword;
+                if (roleId) params.role_id = roleId;
+                if (status) params.status = status;
+                
+                const result = await API.getUsers(params);
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('userTableBody');
+                    
+                    if (data.users.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="9" class="empty-state"><div class="icon">👥</div><p>暂无用户数据</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.users.map(user => `
+                            <tr>
+                                <td>${user.id}</td>
+                                <td>${user.username}</td>
+                                <td>${user.real_name}</td>
+                                <td><span class="badge ${user.role_name === 'admin' ? 'badge-danger' : user.role_name === 'coach' ? 'badge-primary' : 'badge-info'}">${user.role_name === 'admin' ? '管理员' : user.role_name === 'coach' ? '教练' : '学员'}</span></td>
+                                <td>${user.phone || '-'}</td>
+                                <td>${user.email || '-'}</td>
+                                <td>${getStatusBadge(user.status)}</td>
+                                <td>${Utils.formatDateTime(user.created_at)}</td>
+                                <td>
+                                    <div class="table-actions">
+                                        <button class="btn btn-sm btn-primary" onclick="editUser(${user.id})">编辑</button>
+                                        ${user.role_name !== 'admin' ? `<button class="btn btn-sm btn-danger" onclick="deleteUser(${user.id})">删除</button>` : ''}
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('userPagination', data.page, data.pages, data.total, 'loadUserPage');
+                }
+            } catch (error) {
+                console.error('加载用户列表失败:', error);
+            }
+        }
+        
+        async function loadUserPage(page) {
+            userPage = page;
+            await loadUsers();
+        }
+        
+        async function loadCoaches() {
+            try {
+                const keyword = document.getElementById('coachKeyword').value.trim();
+                
+                const params = { page: coachPage, per_page: perPage };
+                if (keyword) params.keyword = keyword;
+                
+                const result = await API.getCoaches(params);
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('coachTableBody');
+                    
+                    if (data.coaches.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><div class="icon">🏃</div><p>暂无教练数据</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.coaches.map(coach => `
+                            <tr>
+                                <td>${coach.id}</td>
+                                <td>${coach.user?.real_name || coach.user?.username || '-'}</td>
+                                <td>${coach.user?.phone || '-'}</td>
+                                <td>${coach.speciality || '-'}</td>
+                                <td>${coach.experience_years || 0} 年</td>
+                                <td>${coach.student_count || 0}</td>
+                                <td>${coach.course_count || 0}</td>
+                                <td>
+                                    <div class="table-actions">
+                                        <button class="btn btn-sm btn-info" onclick="viewUserDetail(${coach.user_id})">详情</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('coachPagination', data.page, data.pages, data.total, 'loadCoachPage');
+                }
+            } catch (error) {
+                console.error('加载教练列表失败:', error);
+            }
+        }
+        
+        async function loadCoachPage(page) {
+            coachPage = page;
+            await loadCoaches();
+        }
+        
+        async function loadStudents() {
+            try {
+                const keyword = document.getElementById('studentKeyword').value.trim();
+                const coachId = document.getElementById('studentCoach').value;
+                const membership = document.getElementById('studentMembership').value;
+                
+                const params = { page: studentPage, per_page: perPage };
+                if (keyword) params.keyword = keyword;
+                if (coachId) params.coach_id = coachId;
+                if (membership) params.membership_level = membership;
+                
+                const result = await API.getStudents(params);
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('studentTableBody');
+                    
+                    if (data.students.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><div class="icon">👤</div><p>暂无学员数据</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.students.map(student => `
+                            <tr>
+                                <td>${student.id}</td>
+                                <td>${student.user?.real_name || student.user?.username || '-'}</td>
+                                <td>${student.user?.phone || '-'}</td>
+                                <td>${student.coach || '-'}</td>
+                                <td>${getMembershipBadge(student.membership_level)}</td>
+                                <td>${student.join_date ? Utils.formatDate(student.join_date) : '-'}</td>
+                                <td>
+                                    <div class="table-actions">
+                                        <button class="btn btn-sm btn-info" onclick="viewUserDetail(${student.user_id})">详情</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('studentPagination', data.page, data.pages, data.total, 'loadStudentPage');
+                }
+            } catch (error) {
+                console.error('加载学员列表失败:', error);
+            }
+        }
+        
+        async function loadStudentPage(page) {
+            studentPage = page;
+            await loadStudents();
+        }
+        
+        async function loadCourses() {
+            try {
+                const keyword = document.getElementById('courseKeyword').value.trim();
+                const courseType = document.getElementById('courseType').value;
+                const status = document.getElementById('courseStatus').value;
+                
+                const params = { page: coursePage, per_page: perPage };
+                if (keyword) params.keyword = keyword;
+                if (courseType) params.course_type = courseType;
+                if (status) params.status = status;
+                
+                const result = await API.getCourses(params);
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('courseTableBody');
+                    
+                    if (data.courses.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><div class="icon">📚</div><p>暂无课程数据</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.courses.map(course => `
+                            <tr>
+                                <td>${course.id}</td>
+                                <td>${course.course_name}</td>
+                                <td>${course.coach_name || '-'}</td>
+                                <td><span class="badge ${course.course_type === 'private' ? 'badge-primary' : 'badge-info'}">${getCourseTypeLabel(course.course_type)}</span></td>
+                                <td>${course.duration || 0} 分钟</td>
+                                <td>${course.max_students || 0} 人</td>
+                                <td>${getStatusBadge(course.status)}</td>
+                                <td>
+                                    <div class="table-actions">
+                                        <button class="btn btn-sm btn-info" onclick="viewCourseDetail(${course.id})">详情</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('coursePagination', data.page, data.pages, data.total, 'loadCoursePage');
+                }
+            } catch (error) {
+                console.error('加载课程列表失败:', error);
+            }
+        }
+        
+        async function loadCoursePage(page) {
+            coursePage = page;
+            await loadCourses();
+        }
+        
+        async function loadSchedules() {
+            try {
+                const scheduleDate = document.getElementById('scheduleDate').value;
+                const status = document.getElementById('scheduleStatus').value;
+                
+                const params = { page: schedulePage, per_page: perPage };
+                if (scheduleDate) params.schedule_date = scheduleDate;
+                if (status) params.status = status;
+                
+                const result = await API.getSchedules(params);
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('scheduleTableBody');
+                    
+                    if (data.schedules.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><div class="icon">📅</div><p>暂无排期数据</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.schedules.map(schedule => `
+                            <tr>
+                                <td>${schedule.id}</td>
+                                <td>${schedule.course_name || '-'}</td>
+                                <td>${schedule.coach_name || '-'}</td>
+                                <td>${Utils.formatDate(schedule.schedule_date)}</td>
+                                <td>${schedule.start_time}</td>
+                                <td>${schedule.end_time}</td>
+                                <td>${schedule.current_students || 0} / ${schedule.max_students || 0}</td>
+                                <td>${getScheduleStatusBadge(schedule.status)}</td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('schedulePagination', data.page, data.pages, data.total, 'loadSchedulePage');
+                }
+            } catch (error) {
+                console.error('加载排期列表失败:', error);
+            }
+        }
+        
+        async function loadSchedulePage(page) {
+            schedulePage = page;
+            await loadSchedules();
+        }
+        
+        async function loadGrades() {
+            try {
+                const gradeType = document.getElementById('gradeType').value;
+                const startDate = document.getElementById('gradeStartDate').value;
+                const endDate = document.getElementById('gradeEndDate').value;
+                
+                const params = { page: gradePage, per_page: perPage };
+                if (gradeType) params.grade_type = gradeType;
+                if (startDate) params.start_date = startDate;
+                if (endDate) params.end_date = endDate;
+                
+                const result = await API.getAllGrades(params);
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('gradeTableBody');
+                    
+                    if (data.grades.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><div class="icon">📝</div><p>暂无成绩数据</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.grades.map(grade => `
+                            <tr>
+                                <td>${grade.id}</td>
+                                <td>${grade.student_name || '-'}</td>
+                                <td>${grade.coach_name || '-'}</td>
+                                <td>${getGradeTypeLabel(grade.grade_type)}</td>
+                                <td><strong>${grade.score}</strong></td>
+                                <td>${grade.max_score}</td>
+                                <td>${Utils.formatDate(grade.evaluate_date)}</td>
+                                <td>
+                                    <div class="table-actions">
+                                        <button class="btn btn-sm btn-info" onclick="viewGradeDetail(${grade.id})">详情</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('gradePagination', data.page, data.pages, data.total, 'loadGradePage');
+                }
+            } catch (error) {
+                console.error('加载成绩列表失败:', error);
+            }
+        }
+        
+        async function loadGradePage(page) {
+            gradePage = page;
+            await loadGrades();
+        }
+        
+        async function loadCheckins() {
+            try {
+                const checkType = document.getElementById('checkinType').value;
+                const startDate = document.getElementById('checkinStartDate').value;
+                const endDate = document.getElementById('checkinEndDate').value;
+                
+                const params = { page: checkinPage, per_page: perPage };
+                if (checkType) params.check_type = checkType;
+                if (startDate) params.start_date = startDate;
+                if (endDate) params.end_date = endDate;
+                
+                const result = await API.getAllCheckIns(params);
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('checkinTableBody');
+                    
+                    if (data.records.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="icon">⏰</div><p>暂无打卡记录</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.records.map(record => `
+                            <tr>
+                                <td>${record.id}</td>
+                                <td>${record.user_name || '-'}</td>
+                                <td>${Utils.formatDateTime(record.check_in_time)}</td>
+                                <td>${getCheckinTypeLabel(record.check_type)}</td>
+                                <td>${getCheckinStatusBadge(record.status)}</td>
+                                <td>${record.remarks || '-'}</td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('checkinPagination', data.page, data.pages, data.total, 'loadCheckinPage');
+                }
+            } catch (error) {
+                console.error('加载打卡记录失败:', error);
+            }
+        }
+        
+        async function loadCheckinPage(page) {
+            checkinPage = page;
+            await loadCheckins();
+        }
+        
+        async function loadLogs() {
+            try {
+                const module = document.getElementById('logModule').value.trim();
+                const operation = document.getElementById('logOperation').value.trim();
+                const startDate = document.getElementById('logStartDate').value;
+                const endDate = document.getElementById('logEndDate').value;
+                
+                const params = { page: logPage, per_page: perPage };
+                if (module) params.module = module;
+                if (operation) params.operation = operation;
+                if (startDate) params.start_date = startDate;
+                if (endDate) params.end_date = endDate;
+                
+                const result = await API.getOperationLogs(params);
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('logTableBody');
+                    
+                    if (data.logs.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="7" class="empty-state"><div class="icon">📋</div><p>暂无操作日志</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.logs.map(log => `
+                            <tr>
+                                <td>${log.id}</td>
+                                <td>${log.user_name || '-'}</td>
+                                <td>${log.operation}</td>
+                                <td>${log.module || '-'}</td>
+                                <td>${Utils.formatDateTime(log.created_at)}</td>
+                                <td>${log.ip_address || '-'}</td>
+                                <td>
+                                    <div class="table-actions">
+                                        <button class="btn btn-sm btn-info" onclick="viewLogDetail(${log.id})">详情</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('logPagination', data.page, data.pages, data.total, 'loadLogPage');
+                }
+            } catch (error) {
+                console.error('加载操作日志失败:', error);
+            }
+        }
+        
+        async function loadLogPage(page) {
+            logPage = page;
+            await loadLogs();
+        }
+        
+        async function loadCoachOptions() {
+            try {
+                const result = await API.getCoaches({ per_page: 1000 });
+                if (result.code === 200) {
+                    const coaches = result.data.coaches;
+                    const select = document.getElementById('studentCoach');
+                    const addSelect = document.getElementById('addStudentCoach');
+                    const courseSelect = document.getElementById('addCourseCoach');
+                    
+                    const options = coaches.map(c => {
+                        const name = c.user?.real_name || c.user?.username;
+                        return `<option value="${c.id}">${name}</option>`;
+                    }).join('');
+                    
+                    select.innerHTML = '<option value="">所有教练</option>' + options;
+                    addSelect.innerHTML = '<option value="">暂不分配</option>' + options;
+                    courseSelect.innerHTML = '<option value="">请选择教练</option>' + options;
+                }
+            } catch (error) {
+                console.error('加载教练选项失败:', error);
+            }
+        }
+        
+        async function loadCourseOptions() {
+            try {
+                const result = await API.getCourses({ status: 1, per_page: 1000 });
+                if (result.code === 200) {
+                    const courses = result.data.courses;
+                    const select = document.getElementById('addScheduleCourse');
+                    select.innerHTML = '<option value="">请选择课程</option>' + 
+                        courses.map(c => `<option value="${c.id}" data-coach="${c.coach_id}" data-duration="${c.duration}">${c.course_name} (${getCourseTypeLabel(c.course_type)})</option>`).join('');
+                }
+            } catch (error) {
+                console.error('加载课程选项失败:', error);
+            }
+        }
+        
+        async function editUser(userId) {
+            try {
+                const result = await API.getUserDetail(userId);
+                if (result.code === 200) {
+                    const user = result.data;
+                    document.getElementById('editUserId').value = user.id;
+                    document.getElementById('editUserRealName').value = user.real_name || '';
+                    document.getElementById('editUserPhone').value = user.phone || '';
+                    document.getElementById('editUserEmail').value = user.email || '';
+                    document.getElementById('editUserStatus').value = user.status;
+                    document.getElementById('editUserPassword').value = '';
+                    openModal('editUserModal');
+                }
+            } catch (error) {
+                Utils.showToast('获取用户信息失败', 'error');
+            }
+        }
+        
+        async function deleteUser(userId) {
+            if (!confirm('确定要删除该用户吗？此操作不可恢复。')) return;
+            
+            try {
+                const result = await API.deleteUser(userId);
+                if (result.code === 200) {
+                    Utils.showToast('删除成功', 'success');
+                    loadUsers();
+                } else {
+                    Utils.showToast(result.message, 'error');
+                }
+            } catch (error) {
+                Utils.showToast('删除失败，请稍后重试', 'error');
+            }
+        }
+        
+        async function viewUserDetail(userId) {
+            try {
+                const result = await API.getUserDetail(userId);
+                if (result.code === 200) {
+                    const user = result.data;
+                    alert(`用户详情:\n\nID: ${user.id}\n用户名: ${user.username}\n真实姓名: ${user.real_name}\n角色: ${user.role_name}\n手机号: ${user.phone || '-'}\n邮箱: ${user.email || '-'}\n状态: ${user.status === 1 ? '启用' : '禁用'}\n创建时间: ${Utils.formatDateTime(user.created_at)}`);
+                }
+            } catch (error) {
+                Utils.showToast('获取用户详情失败', 'error');
+            }
+        }
+        
+        async function viewCourseDetail(courseId) {
+            try {
+                const result = await API.getCourses({ per_page: 1000 });
+                if (result.code === 200) {
+                    const course = result.data.courses.find(c => c.id === courseId);
+                    if (course) {
+                        alert(`课程详情:\n\nID: ${course.id}\n课程名称: ${course.course_name}\n教练: ${course.coach_name || '-'}\n课程类型: ${getCourseTypeLabel(course.course_type)}\n时长: ${course.duration} 分钟\n最大人数: ${course.max_students} 人\n描述: ${course.description || '-'}`);
+                    }
+                }
+            } catch (error) {
+                Utils.showToast('获取课程详情失败', 'error');
+            }
+        }
+        
+        async function viewGradeDetail(gradeId) {
+            try {
+                const result = await API.getAllGrades({ per_page: 1000 });
+                if (result.code === 200) {
+                    const grade = result.data.grades.find(g => g.id === gradeId);
+                    if (grade) {
+                        const body = document.getElementById('gradeDetailBody');
+                        body.innerHTML = `
+                            <div class="profile-grid">
+                                <div class="profile-card">
+                                    <h3>成绩信息</h3>
+                                    <div class="profile-item">
+                                        <span class="profile-label">学员姓名</span>
+                                        <span class="profile-value">${grade.student_name || '-'}</span>
+                                    </div>
+                                    <div class="profile-item">
+                                        <span class="profile-label">评分教练</span>
+                                        <span class="profile-value">${grade.coach_name || '-'}</span>
+                                    </div>
+                                    <div class="profile-item">
+                                        <span class="profile-label">成绩类型</span>
+                                        <span class="profile-value">${getGradeTypeLabel(grade.grade_type)}</span>
+                                    </div>
+                                    <div class="profile-item">
+                                        <span class="profile-label">分数</span>
+                                        <span class="profile-value"><strong>${grade.score}</strong> / ${grade.max_score}</span>
+                                    </div>
+                                    <div class="profile-item">
+                                        <span class="profile-label">评价日期</span>
+                                        <span class="profile-value">${Utils.formatDate(grade.evaluate_date)}</span>
+                                    </div>
+                                    <div class="profile-item">
+                                        <span class="profile-label">评价内容</span>
+                                        <span class="profile-value">${grade.evaluation || '-'}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        `;
+                        openModal('gradeDetailModal');
+                    }
+                }
+            } catch (error) {
+                Utils.showToast('获取成绩详情失败', 'error');
+            }
+        }
+        
+        async function viewLogDetail(logId) {
+            try {
+                const result = await API.getOperationLogs({ per_page: 1000 });
+                if (result.code === 200) {
+                    const log = result.data.logs.find(l => l.id === logId);
+                    if (log) {
+                        const body = document.getElementById('logDetailBody');
+                        body.innerHTML = `
+                            <div class="profile-card">
+                                <h3>日志详情</h3>
+                                <div class="profile-item">
+                                    <span class="profile-label">操作用户</span>
+                                    <span class="profile-value">${log.user_name || '-'}</span>
+                                </div>
+                                <div class="profile-item">
+                                    <span class="profile-label">操作名称</span>
+                                    <span class="profile-value">${log.operation}</span>
+                                </div>
+                                <div class="profile-item">
+                                    <span class="profile-label">模块</span>
+                                    <span class="profile-value">${log.module || '-'}</span>
+                                </div>
+                                <div class="profile-item">
+                                    <span class="profile-label">操作详情</span>
+                                    <span class="profile-value">${log.detail || '-'}</span>
+                                </div>
+                                <div class="profile-item">
+                                    <span class="profile-label">IP地址</span>
+                                    <span class="profile-value">${log.ip_address || '-'}</span>
+                                </div>
+                                <div class="profile-item">
+                                    <span class="profile-label">操作时间</span>
+                                    <span class="profile-value">${Utils.formatDateTime(log.created_at)}</span>
+                                </div>
+                            </div>
+                        `;
+                        openModal('logDetailModal');
+                    }
+                }
+            } catch (error) {
+                Utils.showToast('获取日志详情失败', 'error');
+            }
+        }
+        
+        function onCourseChange() {
+            const select = document.getElementById('addScheduleCourse');
+            const option = select.options[select.selectedIndex];
+            if (option && option.dataset.duration) {
+                const duration = parseInt(option.dataset.duration);
+                const now = new Date();
+                const startHour = Math.min(now.getHours() + 1, 22);
+                const endHour = Math.min(startHour + Math.ceil(duration / 60), 23);
+                
+                document.getElementById('addScheduleStartTime').value = `${String(startHour).padStart(2, '0')}:00`;
+                document.getElementById('addScheduleEndTime').value = `${String(endHour).padStart(2, '0')}:00`;
+            }
+        }
+        
+        function switchSection(sectionId) {
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.section === sectionId) {
+                    item.classList.add('active');
+                }
+            });
+            
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(`section-${sectionId}`).classList.add('active');
+            
+            currentSection = sectionId;
+            
+            const titles = {
+                'dashboard': '数据统计',
+                'users': '用户管理',
+                'coaches': '教练管理',
+                'students': '学员管理',
+                'courses': '课程管理',
+                'schedules': '排期管理',
+                'grades': '成绩查询',
+                'checkins': '打卡记录',
+                'logs': '操作日志'
+            };
+            document.getElementById('pageTitle').textContent = titles[sectionId] || sectionId;
+            
+            switch (sectionId) {
+                case 'dashboard':
+                    loadDashboard();
+                    break;
+                case 'users':
+                    loadUsers();
+                    break;
+                case 'coaches':
+                    loadCoaches();
+                    break;
+                case 'students':
+                    loadStudents();
+                    loadCoachOptions();
+                    break;
+                case 'courses':
+                    loadCourses();
+                    loadCoachOptions();
+                    break;
+                case 'schedules':
+                    loadSchedules();
+                    loadCourseOptions();
+                    break;
+                case 'grades':
+                    loadGrades();
+                    break;
+                case 'checkins':
+                    loadCheckins();
+                    break;
+                case 'logs':
+                    loadLogs();
+                    break;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!Utils.checkAuth()) return;
+            
+            const userRole = Utils.getStorage('user_role');
+            if (userRole !== 'admin') {
+                Utils.logout();
+                return;
+            }
+            
+            const userInfo = Utils.getStorage('user_info');
+            if (userInfo) {
+                document.getElementById('userName').textContent = userInfo.real_name;
+                document.getElementById('userRole').textContent = '系统管理员';
+            }
+            
+            loadDashboard();
+            
+            document.querySelectorAll('.menu-item[data-section]').forEach(item => {
+                item.addEventListener('click', function() {
+                    switchSection(this.dataset.section);
+                });
+            });
+            
+            document.getElementById('logoutBtn').addEventListener('click', async function() {
+                try {
+                    await API.logout();
+                } catch (e) {}
+                Utils.logout();
+            });
+            
+            document.getElementById('addUserBtn').addEventListener('click', function() {
+                document.getElementById('addUserUsername').value = '';
+                document.getElementById('addUserPassword').value = '';
+                document.getElementById('addUserRealName').value = '';
+                document.getElementById('addUserRole').value = '';
+                document.getElementById('addUserPhone').value = '';
+                document.getElementById('addUserEmail').value = '';
+                document.getElementById('addCoachSpeciality').value = '';
+                document.getElementById('addCoachExperience').value = '';
+                document.getElementById('addCoachCertification').value = '';
+                document.getElementById('addCoachBio').value = '';
+                document.getElementById('addStudentCoach').value = '';
+                document.getElementById('addStudentMembership').value = 'basic';
+                document.getElementById('addStudentHeight').value = '';
+                document.getElementById('addStudentWeight').value = '';
+                document.getElementById('addStudentBirthDate').value = '';
+                document.getElementById('addStudentExpireDate').value = '';
+                document.getElementById('coachFields').style.display = 'none';
+                document.getElementById('studentFields').style.display = 'none';
+                loadCoachOptions();
+                openModal('addUserModal');
+            });
+            
+            document.getElementById('saveUserBtn').addEventListener('click', async function() {
+                const username = document.getElementById('addUserUsername').value.trim();
+                const realName = document.getElementById('addUserRealName').value.trim();
+                const roleId = document.getElementById('addUserRole').value;
+                
+                if (!username || !realName || !roleId) {
+                    Utils.showToast('请填写必填项', 'error');
+                    return;
+                }
+                
+                const data = {
+                    username: username,
+                    real_name: realName,
+                    role_id: parseInt(roleId),
+                    phone: document.getElementById('addUserPhone').value || undefined,
+                    email: document.getElementById('addUserEmail').value || undefined
+                };
+                
+                const password = document.getElementById('addUserPassword').value;
+                if (password) data.password = password;
+                
+                if (roleId === '2') {
+                    data.speciality = document.getElementById('addCoachSpeciality').value || undefined;
+                    data.experience_years = document.getElementById('addCoachExperience').value ? parseInt(document.getElementById('addCoachExperience').value) : 0;
+                    data.certification = document.getElementById('addCoachCertification').value || undefined;
+                    data.bio = document.getElementById('addCoachBio').value || undefined;
+                } else if (roleId === '3') {
+                    data.coach_id = document.getElementById('addStudentCoach').value ? parseInt(document.getElementById('addStudentCoach').value) : undefined;
+                    data.membership_level = document.getElementById('addStudentMembership').value || 'basic';
+                    data.height = document.getElementById('addStudentHeight').value ? parseFloat(document.getElementById('addStudentHeight').value) : undefined;
+                    data.weight = document.getElementById('addStudentWeight').value ? parseFloat(document.getElementById('addStudentWeight').value) : undefined;
+                    data.birth_date = document.getElementById('addStudentBirthDate').value || undefined;
+                    data.expire_date = document.getElementById('addStudentExpireDate').value || undefined;
+                }
+                
+                try {
+                    const result = await API.createUser(data);
+                    if (result.code === 200) {
+                        Utils.showToast('用户创建成功', 'success');
+                        closeModal('addUserModal');
+                        loadUsers();
+                    } else {
+                        Utils.showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    Utils.showToast('创建用户失败，请稍后重试', 'error');
+                }
+            });
+            
+            document.getElementById('updateUserBtn').addEventListener('click', async function() {
+                const userId = document.getElementById('editUserId').value;
+                const data = {
+                    real_name: document.getElementById('editUserRealName').value || undefined,
+                    phone: document.getElementById('editUserPhone').value || undefined,
+                    email: document.getElementById('editUserEmail').value || undefined,
+                    status: parseInt(document.getElementById('editUserStatus').value)
+                };
+                
+                const password = document.getElementById('editUserPassword').value;
+                if (password) data.password = password;
+                
+                try {
+                    const result = await API.updateUser(parseInt(userId), data);
+                    if (result.code === 200) {
+                        Utils.showToast('用户更新成功', 'success');
+                        closeModal('editUserModal');
+                        loadUsers();
+                    } else {
+                        Utils.showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    Utils.showToast('更新用户失败，请稍后重试', 'error');
+                }
+            });
+            
+            document.getElementById('addCourseBtn').addEventListener('click', function() {
+                document.getElementById('addCourseName').value = '';
+                document.getElementById('addCourseCoach').value = '';
+                document.getElementById('addCourseType').value = 'private';
+                document.getElementById('addCourseDuration').value = '60';
+                document.getElementById('addCourseMaxStudents').value = '1';
+                document.getElementById('addCourseDescription').value = '';
+                loadCoachOptions();
+                openModal('addCourseModal');
+            });
+            
+            document.getElementById('saveCourseBtn').addEventListener('click', async function() {
+                const courseName = document.getElementById('addCourseName').value.trim();
+                const coachId = document.getElementById('addCourseCoach').value;
+                
+                if (!courseName || !coachId) {
+                    Utils.showToast('请填写必填项', 'error');
+                    return;
+                }
+                
+                const data = {
+                    course_name: courseName,
+                    coach_id: parseInt(coachId),
+                    course_type: document.getElementById('addCourseType').value,
+                    duration: parseInt(document.getElementById('addCourseDuration').value) || 60,
+                    max_students: parseInt(document.getElementById('addCourseMaxStudents').value) || 1,
+                    description: document.getElementById('addCourseDescription').value || undefined
+                };
+                
+                try {
+                    const result = await API.createCourse(data);
+                    if (result.code === 200) {
+                        Utils.showToast('课程创建成功', 'success');
+                        closeModal('addCourseModal');
+                        loadCourses();
+                    } else {
+                        Utils.showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    Utils.showToast('创建课程失败，请稍后重试', 'error');
+                }
+            });
+            
+            document.getElementById('addScheduleBtn').addEventListener('click', function() {
+                document.getElementById('addScheduleCourse').value = '';
+                document.getElementById('addScheduleDate').value = Utils.getToday();
+                document.getElementById('addScheduleStartTime').value = '09:00';
+                document.getElementById('addScheduleEndTime').value = '10:00';
+                document.getElementById('addScheduleLocation').value = '';
+                loadCourseOptions();
+                openModal('addScheduleModal');
+            });
+            
+            document.getElementById('saveScheduleBtn').addEventListener('click', async function() {
+                const courseId = document.getElementById('addScheduleCourse').value;
+                const scheduleDate = document.getElementById('addScheduleDate').value;
+                const startTime = document.getElementById('addScheduleStartTime').value;
+                const endTime = document.getElementById('addScheduleEndTime').value;
+                
+                if (!courseId || !scheduleDate || !startTime || !endTime) {
+                    Utils.showToast('请填写必填项', 'error');
+                    return;
+                }
+                
+                const data = {
+                    course_id: parseInt(courseId),
+                    schedule_date: scheduleDate,
+                    start_time: startTime,
+                    end_time: endTime,
+                    location: document.getElementById('addScheduleLocation').value || undefined
+                };
+                
+                try {
+                    const result = await API.createSchedule(data);
+                    if (result.code === 200) {
+                        Utils.showToast('排期创建成功', 'success');
+                        closeModal('addScheduleModal');
+                        loadSchedules();
+                    } else {
+                        Utils.showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    Utils.showToast('创建排期失败，请稍后重试', 'error');
+                }
+            });
+            
+            document.getElementById('searchUserBtn').addEventListener('click', function() {
+                userPage = 1;
+                loadUsers();
+            });
+            
+            document.getElementById('resetUserSearchBtn').addEventListener('click', function() {
+                document.getElementById('userKeyword').value = '';
+                document.getElementById('userRole').value = '';
+                document.getElementById('userStatus').value = '';
+                userPage = 1;
+                loadUsers();
+            });
+            
+            document.getElementById('searchCoachBtn').addEventListener('click', function() {
+                coachPage = 1;
+                loadCoaches();
+            });
+            
+            document.getElementById('resetCoachSearchBtn').addEventListener('click', function() {
+                document.getElementById('coachKeyword').value = '';
+                coachPage = 1;
+                loadCoaches();
+            });
+            
+            document.getElementById('searchStudentBtn').addEventListener('click', function() {
+                studentPage = 1;
+                loadStudents();
+            });
+            
+            document.getElementById('resetStudentSearchBtn').addEventListener('click', function() {
+                document.getElementById('studentKeyword').value = '';
+                document.getElementById('studentCoach').value = '';
+                document.getElementById('studentMembership').value = '';
+                studentPage = 1;
+                loadStudents();
+            });
+            
+            document.getElementById('searchCourseBtn').addEventListener('click', function() {
+                coursePage = 1;
+                loadCourses();
+            });
+            
+            document.getElementById('resetCourseSearchBtn').addEventListener('click', function() {
+                document.getElementById('courseKeyword').value = '';
+                document.getElementById('courseType').value = '';
+                document.getElementById('courseStatus').value = '';
+                coursePage = 1;
+                loadCourses();
+            });
+            
+            document.getElementById('searchScheduleBtn').addEventListener('click', function() {
+                schedulePage = 1;
+                loadSchedules();
+            });
+            
+            document.getElementById('resetScheduleSearchBtn').addEventListener('click', function() {
+                document.getElementById('scheduleDate').value = '';
+                document.getElementById('scheduleStatus').value = '';
+                schedulePage = 1;
+                loadSchedules();
+            });
+            
+            document.getElementById('searchGradeBtn').addEventListener('click', function() {
+                gradePage = 1;
+                loadGrades();
+            });
+            
+            document.getElementById('resetGradeSearchBtn').addEventListener('click', function() {
+                document.getElementById('gradeType').value = '';
+                document.getElementById('gradeStartDate').value = '';
+                document.getElementById('gradeEndDate').value = '';
+                gradePage = 1;
+                loadGrades();
+            });
+            
+            document.getElementById('searchCheckinBtn').addEventListener('click', function() {
+                checkinPage = 1;
+                loadCheckins();
+            });
+            
+            document.getElementById('resetCheckinSearchBtn').addEventListener('click', function() {
+                document.getElementById('checkinType').value = '';
+                document.getElementById('checkinStartDate').value = '';
+                document.getElementById('checkinEndDate').value = '';
+                checkinPage = 1;
+                loadCheckins();
+            });
+            
+            document.getElementById('searchLogBtn').addEventListener('click', function() {
+                logPage = 1;
+                loadLogs();
+            });
+            
+            document.getElementById('resetLogSearchBtn').addEventListener('click', function() {
+                document.getElementById('logModule').value = '';
+                document.getElementById('logOperation').value = '';
+                document.getElementById('logStartDate').value = '';
+                document.getElementById('logEndDate').value = '';
+                logPage = 1;
+                loadLogs();
+            });
+            
+            window.addEventListener('click', function(e) {
+                if (e.target.classList.contains('modal')) {
+                    e.target.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
