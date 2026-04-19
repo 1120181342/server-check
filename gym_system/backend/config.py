@@ -7,8 +7,8 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY') or 'gym-system-secret-key-2024-very-secure'
     JWT_SECRET_KEY = os.environ.get('JWT_SECRET_KEY') or 'gym-jwt-secret-key-2024'
-    JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=2)
-    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=7)
+    JWT_ACCESS_TOKEN_EXPIRES = timedelta(minutes=30)
+    JWT_REFRESH_TOKEN_EXPIRES = timedelta(days=2)
     
     MYSQL_HOST = os.environ.get('MYSQL_HOST') or 'localhost'
     MYSQL_PORT = int(os.environ.get('MYSQL_PORT') or 3306)
