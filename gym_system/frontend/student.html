@@ -1,0 +1,1064 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学员端 - 健身房人员信息登记系统</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <div class="main-layout">
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>🏋️ 健身房管理系统</h2>
+                <p id="sidebarRole">学员端</p>
+            </div>
+            <nav class="sidebar-menu">
+                <div class="menu-item active" data-section="dashboard">
+                    📊 工作台
+                </div>
+                <div class="menu-item" data-section="profile">
+                    👤 个人信息
+                </div>
+                <div class="menu-item" data-section="my-courses">
+                    📚 我的课程
+                </div>
+                <div class="menu-item" data-section="available-courses">
+                    📅 可选课程
+                </div>
+                <div class="menu-item" data-section="checkin">
+                    ⏰ 上课打卡
+                </div>
+                <div class="menu-item" data-section="grades">
+                    📝 我的成绩
+                </div>
+                <div class="menu-item" data-section="checkin-records">
+                    📋 打卡记录
+                </div>
+                <div class="menu-item" id="logoutBtn">
+                    🚪 退出登录
+                </div>
+            </nav>
+        </aside>
+        
+        <main class="main-content">
+            <header class="header">
+                <div class="header-title">
+                    <h1 id="pageTitle">工作台</h1>
+                    <p id="pageSubtitle">欢迎回来，开始今天的训练吧</p>
+                </div>
+                <div class="header-user">
+                    <div class="user-info">
+                        <div class="user-name" id="userName">--</div>
+                        <div class="user-role" id="userRole">--</div>
+                    </div>
+                </div>
+            </header>
+            
+            <div class="page-container">
+                <section class="page-section active" id="section-dashboard">
+                    <div class="section-header">
+                        <h2>工作台</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="statMyCourses">0</div>
+                            <div class="stat-label">我的课程</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTodaySchedules">0</div>
+                            <div class="stat-label">今日排期</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTodayCheckins">0</div>
+                            <div class="stat-label">今日打卡</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statTotalGrades">0</div>
+                            <div class="stat-label">成绩记录</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="statAvgGrade">-</div>
+                            <div class="stat-label">平均成绩</div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="page-section" id="section-profile">
+                    <div class="section-header">
+                        <h2>个人信息</h2>
+                        <div>
+                            <button class="btn btn-primary" id="editProfileBtn">编辑信息</button>
+                            <button class="btn btn-warning" id="changePasswordBtn">修改密码</button>
+                        </div>
+                    </div>
+                    <div class="profile-grid" id="profileContainer">
+                        <div class="loading">加载中...</div>
+                    </div>
+                </section>
+                
+                <section class="page-section" id="section-my-courses">
+                    <div class="section-header">
+                        <h2>我的课程</h2>
+                    </div>
+                    <div class="search-form">
+                        <select id="myCourseStatus">
+                            <option value="">所有状态</option>
+                            <option value="enrolled">已报名</option>
+                            <option value="attended">已上课</option>
+                            <option value="absent">缺勤</option>
+                            <option value="cancelled">已取消</option>
+                        </select>
+                        <button class="btn btn-primary" id="searchMyCourseBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetMyCourseSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>课程名称</th>
+                                    <th>教练</th>
+                                    <th>上课日期</th>
+                                    <th>开始时间</th>
+                                    <th>结束时间</th>
+                                    <th>上课地点</th>
+                                    <th>报名状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="myCourseTableBody">
+                                <tr>
+                                    <td colspan="8" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="myCoursePagination"></div>
+                </section>
+                
+                <section class="page-section" id="section-available-courses">
+                    <div class="section-header">
+                        <h2>可选课程</h2>
+                    </div>
+                    <div class="search-form">
+                        <input type="date" id="availableCourseDate" value="">
+                        <button class="btn btn-primary" id="searchAvailableCourseBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetAvailableCourseSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>课程名称</th>
+                                    <th>教练</th>
+                                    <th>上课日期</th>
+                                    <th>开始时间</th>
+                                    <th>结束时间</th>
+                                    <th>上课地点</th>
+                                    <th>当前人数</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="availableCourseTableBody">
+                                <tr>
+                                    <td colspan="8" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="availableCoursePagination"></div>
+                </section>
+                
+                <section class="page-section" id="section-checkin">
+                    <div class="section-header">
+                        <h2>上课打卡</h2>
+                    </div>
+                    <div class="check-in-area">
+                        <button class="check-in-btn" id="checkInBtn">
+                            上课打卡
+                        </button>
+                        <div class="check-in-info">
+                            <div class="time" id="currentTime">--:--:--</div>
+                            <div id="currentDate">--</div>
+                        </div>
+                        <div style="margin-top: 30px; text-align: left; max-width: 500px; margin-left: auto; margin-right: auto;">
+                            <div class="form-group">
+                                <label>选择课程排期（可选）</label>
+                                <select id="checkinSchedule">
+                                    <option value="">无（通用打卡）</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>打卡类型</label>
+                                <select id="checkinType">
+                                    <option value="class">上课打卡</option>
+                                    <option value="gym">健身房打卡</option>
+                                    <option value="leave">请假</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>备注（可选）</label>
+                                <textarea id="checkinRemarks" placeholder="请输入备注信息..."></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+                
+                <section class="page-section" id="section-grades">
+                    <div class="section-header">
+                        <h2>我的成绩</h2>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <div class="stat-value" id="gradeStatTotal">0</div>
+                            <div class="stat-label">总记录数</div>
+                        </div>
+                        <div class="stat-card">
+                            <div class="stat-value" id="gradeStatAvg">0</div>
+                            <div class="stat-label">平均成绩</div>
+                        </div>
+                    </div>
+                    <div class="search-form">
+                        <select id="gradeType">
+                            <option value="">所有类型</option>
+                            <option value="physical">体能成绩</option>
+                            <option value="skill">技能成绩</option>
+                            <option value="overall">综合成绩</option>
+                            <option value="attendance">考勤成绩</option>
+                        </select>
+                        <button class="btn btn-primary" id="searchGradeBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetGradeSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>评价日期</th>
+                                    <th>成绩类型</th>
+                                    <th>教练</th>
+                                    <th>分数</th>
+                                    <th>满分</th>
+                                    <th>评价内容</th>
+                                </tr>
+                            </thead>
+                            <tbody id="gradeTableBody">
+                                <tr>
+                                    <td colspan="6" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="gradePagination"></div>
+                </section>
+                
+                <section class="page-section" id="section-checkin-records">
+                    <div class="section-header">
+                        <h2>打卡记录</h2>
+                    </div>
+                    <div class="search-form">
+                        <input type="date" id="checkinStartDate">
+                        <span>至</span>
+                        <input type="date" id="checkinEndDate">
+                        <select id="checkinRecordType">
+                            <option value="">所有类型</option>
+                            <option value="class">上课打卡</option>
+                            <option value="gym">健身房打卡</option>
+                            <option value="leave">请假</option>
+                        </select>
+                        <button class="btn btn-primary" id="searchCheckinRecordBtn">搜索</button>
+                        <button class="btn btn-secondary" id="resetCheckinRecordSearchBtn">重置</button>
+                    </div>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>打卡时间</th>
+                                    <th>打卡类型</th>
+                                    <th>状态</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody id="checkinRecordTableBody">
+                                <tr>
+                                    <td colspan="4" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div id="checkinRecordPagination"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+    
+    <div class="modal" id="editProfileModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>编辑个人信息</h3>
+                <button class="modal-close" onclick="closeModal('editProfileModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="editProfileForm">
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>真实姓名</label>
+                            <input type="text" id="editRealName">
+                        </div>
+                        <div class="form-group">
+                            <label>手机号</label>
+                            <input type="text" id="editPhone">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>邮箱</label>
+                            <input type="email" id="editEmail">
+                        </div>
+                        <div class="form-group">
+                            <label>性别</label>
+                            <select id="editGender">
+                                <option value="unknown">未知</option>
+                                <option value="male">男</option>
+                                <option value="female">女</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>出生日期</label>
+                            <input type="date" id="editBirthDate">
+                        </div>
+                        <div class="form-group">
+                            <label>会员等级</label>
+                            <select id="editMembership" disabled>
+                                <option value="basic">基础会员</option>
+                                <option value="premium">高级会员</option>
+                                <option value="vip">VIP会员</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>身高 (cm)</label>
+                            <input type="number" id="editHeight" step="0.01" min="0">
+                        </div>
+                        <div class="form-group">
+                            <label>体重 (kg)</label>
+                            <input type="number" id="editWeight" step="0.01" min="0">
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('editProfileModal')">取消</button>
+                <button class="btn btn-primary" id="saveProfileBtn">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="modal" id="changePasswordModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>修改密码</h3>
+                <button class="modal-close" onclick="closeModal('changePasswordModal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <form id="changePasswordForm">
+                    <div class="form-group">
+                        <label>原密码</label>
+                        <input type="password" id="oldPassword" placeholder="请输入原密码">
+                    </div>
+                    <div class="form-group">
+                        <label>新密码</label>
+                        <input type="password" id="newPassword" placeholder="请输入新密码（至少6位）">
+                    </div>
+                    <div class="form-group">
+                        <label>确认新密码</label>
+                        <input type="password" id="confirmPassword" placeholder="请再次输入新密码">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('changePasswordModal')">取消</button>
+                <button class="btn btn-primary" id="savePasswordBtn">保存</button>
+            </div>
+        </div>
+    </div>
+    
+    <div id="toast" class="toast"></div>
+    
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script>
+        let currentUser = null;
+        let currentSection = 'dashboard';
+        let myCoursePage = 1;
+        let availableCoursePage = 1;
+        let gradePage = 1;
+        let checkinRecordPage = 1;
+        const perPage = 10;
+        
+        function updateTime() {
+            const now = new Date();
+            document.getElementById('currentTime').textContent = now.toLocaleTimeString('zh-CN');
+            document.getElementById('currentDate').textContent = now.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                weekday: 'long'
+            });
+        }
+        
+        function openModal(modalId) {
+            document.getElementById(modalId).classList.add('active');
+        }
+        
+        function closeModal(modalId) {
+            document.getElementById(modalId).classList.remove('active');
+        }
+        
+        function getStatusBadge(status) {
+            const badges = {
+                'success': '<span class="badge badge-success">正常</span>',
+                'late': '<span class="badge badge-warning">迟到</span>',
+                'early': '<span class="badge badge-info">早退</span>',
+                'absent': '<span class="badge badge-danger">缺勤</span>'
+            };
+            return badges[status] || status;
+        }
+        
+        function getEnrollStatusBadge(status) {
+            const badges = {
+                'enrolled': '<span class="badge badge-info">已报名</span>',
+                'attended': '<span class="badge badge-success">已上课</span>',
+                'absent': '<span class="badge badge-danger">缺勤</span>',
+                'cancelled': '<span class="badge badge-secondary">已取消</span>'
+            };
+            return badges[status] || status;
+        }
+        
+        function getMembershipBadge(level) {
+            const badges = {
+                'basic': '<span class="badge badge-secondary">基础会员</span>',
+                'premium': '<span class="badge badge-primary">高级会员</span>',
+                'vip': '<span class="badge badge-warning">VIP会员</span>'
+            };
+            return badges[level] || level;
+        }
+        
+        function getGradeTypeLabel(type) {
+            const labels = {
+                'physical': '体能成绩',
+                'skill': '技能成绩',
+                'overall': '综合成绩',
+                'attendance': '考勤成绩'
+            };
+            return labels[type] || type;
+        }
+        
+        function getCheckinTypeLabel(type) {
+            const labels = {
+                'class': '上课打卡',
+                'gym': '健身房打卡',
+                'leave': '请假'
+            };
+            return labels[type] || type;
+        }
+        
+        async function loadUserInfo() {
+            try {
+                const result = await API.getStudentProfile();
+                if (result.code === 200) {
+                    currentUser = result.data;
+                    document.getElementById('userName').textContent = currentUser.user.real_name;
+                    document.getElementById('userRole').textContent = '学员';
+                    
+                    const coursesResult = await API.getStudentCourses({ per_page: 1 });
+                    if (coursesResult.code === 200) {
+                        document.getElementById('statMyCourses').textContent = coursesResult.data.total;
+                    }
+                    
+                    const today = Utils.getToday();
+                    const checkinResult = await API.getStudentCheckInRecords({ start_date: today, end_date: today, per_page: 1 });
+                    if (checkinResult.code === 200) {
+                        document.getElementById('statTodayCheckins').textContent = checkinResult.data.total;
+                    }
+                    
+                    const gradesResult = await API.getStudentGrades({ per_page: 1 });
+                    if (gradesResult.code === 200) {
+                        document.getElementById('statTotalGrades').textContent = gradesResult.data.total;
+                    }
+                    
+                    const statsResult = await API.getStudentGradesStats();
+                    if (statsResult.code === 200) {
+                        document.getElementById('statAvgGrade').textContent = statsResult.data.avg_score || '-';
+                    }
+                    
+                    const schedulesResult = await API.getAvailableSchedules({ schedule_date: today, per_page: 1 });
+                    if (schedulesResult.code === 200) {
+                        document.getElementById('statTodaySchedules').textContent = schedulesResult.data.total;
+                    }
+                }
+            } catch (error) {
+                console.error('加载用户信息失败:', error);
+            }
+        }
+        
+        async function loadProfile() {
+            try {
+                const result = await API.getStudentProfile();
+                if (result.code === 200) {
+                    const data = result.data;
+                    const container = document.getElementById('profileContainer');
+                    
+                    let coachName = '-';
+                    try {
+                        const coachResult = await API.getStudentCoach();
+                        if (coachResult.code === 200 && coachResult.data) {
+                            coachName = coachResult.data.user_info?.real_name || coachResult.data.user?.real_name || '-';
+                        }
+                    } catch (e) {}
+                    
+                    container.innerHTML = `
+                        <div class="profile-card">
+                            <h3>基本信息</h3>
+                            <div class="profile-item">
+                                <span class="profile-label">用户名</span>
+                                <span class="profile-value">${data.user.username || '-'}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">真实姓名</span>
+                                <span class="profile-value">${data.user.real_name || '-'}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">手机号</span>
+                                <span class="profile-value">${data.user.phone || '-'}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">邮箱</span>
+                                <span class="profile-value">${data.user.email || '-'}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">性别</span>
+                                <span class="profile-value">${data.user.gender === 'male' ? '男' : data.user.gender === 'female' ? '女' : '未知'}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">最后登录</span>
+                                <span class="profile-value">${data.user.last_login ? Utils.formatDateTime(data.user.last_login) : '-'}</span>
+                            </div>
+                        </div>
+                        <div class="profile-card">
+                            <h3>学员信息</h3>
+                            <div class="profile-item">
+                                <span class="profile-label">会员等级</span>
+                                <span class="profile-value">${getMembershipBadge(data.student_info.membership_level)}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">所属教练</span>
+                                <span class="profile-value">${coachName}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">出生日期</span>
+                                <span class="profile-value">${data.student_info.birth_date ? Utils.formatDate(data.student_info.birth_date) : '-'}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">身高</span>
+                                <span class="profile-value">${data.student_info.height ? data.student_info.height + ' cm' : '-'}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">体重</span>
+                                <span class="profile-value">${data.student_info.weight ? data.student_info.weight + ' kg' : '-'}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">入会日期</span>
+                                <span class="profile-value">${data.student_info.join_date ? Utils.formatDate(data.student_info.join_date) : '-'}</span>
+                            </div>
+                            <div class="profile-item">
+                                <span class="profile-label">会员到期</span>
+                                <span class="profile-value">${data.student_info.expire_date ? Utils.formatDate(data.student_info.expire_date) : '-'}</span>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                console.error('加载个人信息失败:', error);
+            }
+        }
+        
+        async function loadMyCourses() {
+            try {
+                const status = document.getElementById('myCourseStatus').value;
+                
+                const params = { page: myCoursePage, per_page: perPage };
+                if (status) params.status = status;
+                
+                const result = await API.getStudentCourses(params);
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('myCourseTableBody');
+                    
+                    if (data.courses.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><div class="icon">📚</div><p>暂无已报名课程</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.courses.map(course => `
+                            <tr>
+                                <td>${course.course_name || '-'}</td>
+                                <td>${course.coach_name || '-'}</td>
+                                <td>${Utils.formatDate(course.schedule_date)}</td>
+                                <td>${course.start_time}</td>
+                                <td>${course.end_time}</td>
+                                <td>${course.location || '-'}</td>
+                                <td>${getEnrollStatusBadge(course.enroll_status)}</td>
+                                <td>
+                                    <div class="table-actions">
+                                        ${course.enroll_status === 'enrolled' ? 
+                                            `<button class="btn btn-sm btn-danger" onclick="cancelEnroll(${course.schedule_id})">取消</button>` : 
+                                            ''}
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('myCoursePagination', data.page, data.pages, data.total, 'loadMyCoursePage');
+                }
+            } catch (error) {
+                console.error('加载我的课程失败:', error);
+            }
+        }
+        
+        async function loadMyCoursePage(page) {
+            myCoursePage = page;
+            await loadMyCourses();
+        }
+        
+        async function cancelEnroll(scheduleId) {
+            if (!confirm('确定要取消该课程报名吗？')) return;
+            
+            try {
+                const result = await API.cancelCourse(scheduleId);
+                if (result.code === 200) {
+                    Utils.showToast('取消报名成功', 'success');
+                    loadMyCourses();
+                } else {
+                    Utils.showToast(result.message, 'error');
+                }
+            } catch (error) {
+                Utils.showToast('取消报名失败，请稍后重试', 'error');
+            }
+        }
+        
+        async function loadAvailableCourses() {
+            try {
+                const scheduleDate = document.getElementById('availableCourseDate').value;
+                
+                const params = { page: availableCoursePage, per_page: perPage };
+                if (scheduleDate) params.schedule_date = scheduleDate;
+                
+                const result = await API.getAvailableSchedules(params);
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('availableCourseTableBody');
+                    
+                    if (data.schedules.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="8" class="empty-state"><div class="icon">📅</div><p>暂无可报名课程</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.schedules.map(schedule => `
+                            <tr>
+                                <td>${schedule.course_name || '-'}</td>
+                                <td>${schedule.coach_name || '-'}</td>
+                                <td>${Utils.formatDate(schedule.schedule_date)}</td>
+                                <td>${schedule.start_time}</td>
+                                <td>${schedule.end_time}</td>
+                                <td>${schedule.location || '-'}</td>
+                                <td>${schedule.current_students || 0} / ${schedule.max_students || 0}</td>
+                                <td>
+                                    <div class="table-actions">
+                                        <button class="btn btn-sm btn-primary" onclick="enrollCourse(${schedule.id})">报名</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('availableCoursePagination', data.page, data.pages, data.total, 'loadAvailableCoursePage');
+                }
+            } catch (error) {
+                console.error('加载可选课程失败:', error);
+            }
+        }
+        
+        async function loadAvailableCoursePage(page) {
+            availableCoursePage = page;
+            await loadAvailableCourses();
+        }
+        
+        async function enrollCourse(scheduleId) {
+            if (!confirm('确定要报名该课程吗？')) return;
+            
+            try {
+                const result = await API.enrollCourse(scheduleId);
+                if (result.code === 200) {
+                    Utils.showToast('报名成功', 'success');
+                    loadAvailableCourses();
+                    loadMyCourses();
+                } else {
+                    Utils.showToast(result.message, 'error');
+                }
+            } catch (error) {
+                Utils.showToast('报名失败，请稍后重试', 'error');
+            }
+        }
+        
+        async function loadGrades() {
+            try {
+                const gradeType = document.getElementById('gradeType').value;
+                
+                const params = { page: gradePage, per_page: perPage };
+                if (gradeType) params.grade_type = gradeType;
+                
+                const result = await API.getStudentGrades(params);
+                const statsResult = await API.getStudentGradesStats();
+                
+                if (statsResult.code === 200) {
+                    document.getElementById('gradeStatTotal').textContent = statsResult.data.total_count;
+                    document.getElementById('gradeStatAvg').textContent = statsResult.data.avg_score;
+                }
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('gradeTableBody');
+                    
+                    if (data.grades.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="empty-state"><div class="icon">📝</div><p>暂无成绩记录</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.grades.map(grade => `
+                            <tr>
+                                <td>${Utils.formatDate(grade.evaluate_date)}</td>
+                                <td>${getGradeTypeLabel(grade.grade_type)}</td>
+                                <td>${grade.coach_name || '-'}</td>
+                                <td><strong>${grade.score}</strong></td>
+                                <td>${grade.max_score}</td>
+                                <td>${grade.evaluation || '-'}</td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('gradePagination', data.page, data.pages, data.total, 'loadGradePage');
+                }
+            } catch (error) {
+                console.error('加载成绩列表失败:', error);
+            }
+        }
+        
+        async function loadGradePage(page) {
+            gradePage = page;
+            await loadGrades();
+        }
+        
+        async function loadCheckinRecords() {
+            try {
+                const startDate = document.getElementById('checkinStartDate').value;
+                const endDate = document.getElementById('checkinEndDate').value;
+                const checkType = document.getElementById('checkinRecordType').value;
+                
+                const params = { page: checkinRecordPage, per_page: perPage };
+                if (startDate) params.start_date = startDate;
+                if (endDate) params.end_date = endDate;
+                if (checkType) params.check_type = checkType;
+                
+                const result = await API.getStudentCheckInRecords(params);
+                
+                if (result.code === 200) {
+                    const data = result.data;
+                    const tbody = document.getElementById('checkinRecordTableBody');
+                    
+                    if (data.records.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="4" class="empty-state"><div class="icon">📋</div><p>暂无打卡记录</p></td></tr>`;
+                    } else {
+                        tbody.innerHTML = data.records.map(record => `
+                            <tr>
+                                <td>${Utils.formatDateTime(record.check_in_time)}</td>
+                                <td>${getCheckinTypeLabel(record.check_type)}</td>
+                                <td>${getStatusBadge(record.status)}</td>
+                                <td>${record.remarks || '-'}</td>
+                            </tr>
+                        `).join('');
+                    }
+                    
+                    Utils.renderPagination('checkinRecordPagination', data.page, data.pages, data.total, 'loadCheckinRecordPage');
+                }
+            } catch (error) {
+                console.error('加载打卡记录失败:', error);
+            }
+        }
+        
+        async function loadCheckinRecordPage(page) {
+            checkinRecordPage = page;
+            await loadCheckinRecords();
+        }
+        
+        async function loadMyScheduleOptions() {
+            try {
+                const today = Utils.getToday();
+                const result = await API.getStudentCourses({ status: 'enrolled', per_page: 100 });
+                if (result.code === 200) {
+                    const courses = result.data.courses;
+                    const select = document.getElementById('checkinSchedule');
+                    select.innerHTML = '<option value="">无（通用打卡）</option>';
+                    courses.forEach(course => {
+                        select.innerHTML += `<option value="${course.schedule_id}">${course.course_name} (${course.start_time}-${course.end_time})</option>`;
+                    });
+                }
+            } catch (error) {
+                console.error('加载排期选项失败:', error);
+            }
+        }
+        
+        function switchSection(sectionId) {
+            document.querySelectorAll('.menu-item').forEach(item => {
+                item.classList.remove('active');
+                if (item.dataset.section === sectionId) {
+                    item.classList.add('active');
+                }
+            });
+            
+            document.querySelectorAll('.page-section').forEach(section => {
+                section.classList.remove('active');
+            });
+            document.getElementById(`section-${sectionId}`).classList.add('active');
+            
+            currentSection = sectionId;
+            
+            const titles = {
+                'dashboard': '工作台',
+                'profile': '个人信息',
+                'my-courses': '我的课程',
+                'available-courses': '可选课程',
+                'checkin': '上课打卡',
+                'grades': '我的成绩',
+                'checkin-records': '打卡记录'
+            };
+            document.getElementById('pageTitle').textContent = titles[sectionId] || sectionId;
+            
+            switch (sectionId) {
+                case 'profile':
+                    loadProfile();
+                    break;
+                case 'my-courses':
+                    loadMyCourses();
+                    break;
+                case 'available-courses':
+                    loadAvailableCourses();
+                    break;
+                case 'grades':
+                    loadGrades();
+                    break;
+                case 'checkin-records':
+                    loadCheckinRecords();
+                    break;
+                case 'checkin':
+                    loadMyScheduleOptions();
+                    break;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            if (!Utils.checkAuth()) return;
+            
+            const userRole = Utils.getStorage('user_role');
+            if (userRole !== 'student') {
+                Utils.logout();
+                return;
+            }
+            
+            updateTime();
+            setInterval(updateTime, 1000);
+            
+            loadUserInfo();
+            
+            document.querySelectorAll('.menu-item[data-section]').forEach(item => {
+                item.addEventListener('click', function() {
+                    switchSection(this.dataset.section);
+                });
+            });
+            
+            document.getElementById('logoutBtn').addEventListener('click', async function() {
+                try {
+                    await API.logout();
+                } catch (e) {}
+                Utils.logout();
+            });
+            
+            document.getElementById('editProfileBtn').addEventListener('click', async function() {
+                const result = await API.getStudentProfile();
+                if (result.code === 200) {
+                    const data = result.data;
+                    document.getElementById('editRealName').value = data.user.real_name || '';
+                    document.getElementById('editPhone').value = data.user.phone || '';
+                    document.getElementById('editEmail').value = data.user.email || '';
+                    document.getElementById('editGender').value = data.user.gender || 'unknown';
+                    document.getElementById('editBirthDate').value = data.student_info.birth_date || '';
+                    document.getElementById('editMembership').value = data.student_info.membership_level || 'basic';
+                    document.getElementById('editHeight').value = data.student_info.height || '';
+                    document.getElementById('editWeight').value = data.student_info.weight || '';
+                }
+                openModal('editProfileModal');
+            });
+            
+            document.getElementById('saveProfileBtn').addEventListener('click', async function() {
+                const data = {
+                    real_name: document.getElementById('editRealName').value,
+                    phone: document.getElementById('editPhone').value,
+                    email: document.getElementById('editEmail').value,
+                    gender: document.getElementById('editGender').value,
+                    birth_date: document.getElementById('editBirthDate').value || undefined,
+                    height: document.getElementById('editHeight').value ? parseFloat(document.getElementById('editHeight').value) : undefined,
+                    weight: document.getElementById('editWeight').value ? parseFloat(document.getElementById('editWeight').value) : undefined
+                };
+                
+                try {
+                    const result = await API.updateStudentProfile(data);
+                    if (result.code === 200) {
+                        Utils.showToast('信息更新成功', 'success');
+                        closeModal('editProfileModal');
+                        loadProfile();
+                        loadUserInfo();
+                    } else {
+                        Utils.showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    Utils.showToast('更新失败，请稍后重试', 'error');
+                }
+            });
+            
+            document.getElementById('changePasswordBtn').addEventListener('click', function() {
+                document.getElementById('oldPassword').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('confirmPassword').value = '';
+                openModal('changePasswordModal');
+            });
+            
+            document.getElementById('savePasswordBtn').addEventListener('click', async function() {
+                const oldPassword = document.getElementById('oldPassword').value;
+                const newPassword = document.getElementById('newPassword').value;
+                const confirmPassword = document.getElementById('confirmPassword').value;
+                
+                if (!oldPassword || !newPassword || !confirmPassword) {
+                    Utils.showToast('请填写所有必填项', 'error');
+                    return;
+                }
+                
+                if (newPassword !== confirmPassword) {
+                    Utils.showToast('两次输入的新密码不一致', 'error');
+                    return;
+                }
+                
+                if (newPassword.length < 6) {
+                    Utils.showToast('新密码长度不能少于6位', 'error');
+                    return;
+                }
+                
+                try {
+                    const result = await API.changePassword(oldPassword, newPassword);
+                    if (result.code === 200) {
+                        Utils.showToast('密码修改成功', 'success');
+                        closeModal('changePasswordModal');
+                    } else {
+                        Utils.showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    Utils.showToast('密码修改失败，请稍后重试', 'error');
+                }
+            });
+            
+            document.getElementById('searchMyCourseBtn').addEventListener('click', function() {
+                myCoursePage = 1;
+                loadMyCourses();
+            });
+            
+            document.getElementById('resetMyCourseSearchBtn').addEventListener('click', function() {
+                document.getElementById('myCourseStatus').value = '';
+                myCoursePage = 1;
+                loadMyCourses();
+            });
+            
+            document.getElementById('searchAvailableCourseBtn').addEventListener('click', function() {
+                availableCoursePage = 1;
+                loadAvailableCourses();
+            });
+            
+            document.getElementById('resetAvailableCourseSearchBtn').addEventListener('click', function() {
+                document.getElementById('availableCourseDate').value = '';
+                availableCoursePage = 1;
+                loadAvailableCourses();
+            });
+            
+            document.getElementById('checkInBtn').addEventListener('click', async function() {
+                const scheduleId = document.getElementById('checkinSchedule').value;
+                const checkType = document.getElementById('checkinType').value;
+                const remarks = document.getElementById('checkinRemarks').value;
+                
+                const btn = document.getElementById('checkInBtn');
+                btn.disabled = true;
+                btn.textContent = '打卡中...';
+                
+                try {
+                    const data = {
+                        check_type: checkType,
+                        remarks: remarks || undefined
+                    };
+                    if (scheduleId) data.schedule_id = parseInt(scheduleId);
+                    
+                    const result = await API.studentCheckIn(data);
+                    
+                    if (result.code === 200) {
+                        Utils.showToast('打卡成功', 'success');
+                        document.getElementById('checkinRemarks').value = '';
+                        loadUserInfo();
+                    } else {
+                        Utils.showToast(result.message, 'error');
+                    }
+                } catch (error) {
+                    Utils.showToast('打卡失败，请稍后重试', 'error');
+                } finally {
+                    btn.disabled = false;
+                    btn.textContent = '上课打卡';
+                }
+            });
+            
+            document.getElementById('searchGradeBtn').addEventListener('click', function() {
+                gradePage = 1;
+                loadGrades();
+            });
+            
+            document.getElementById('resetGradeSearchBtn').addEventListener('click', function() {
+                document.getElementById('gradeType').value = '';
+                gradePage = 1;
+                loadGrades();
+            });
+            
+            document.getElementById('searchCheckinRecordBtn').addEventListener('click', function() {
+                checkinRecordPage = 1;
+                loadCheckinRecords();
+            });
+            
+            document.getElementById('resetCheckinRecordSearchBtn').addEventListener('click', function() {
+                document.getElementById('checkinStartDate').value = '';
+                document.getElementById('checkinEndDate').value = '';
+                document.getElementById('checkinRecordType').value = '';
+                checkinRecordPage = 1;
+                loadCheckinRecords();
+            });
+            
+            window.addEventListener('click', function(e) {
+                if (e.target.classList.contains('modal')) {
+                    e.target.classList.remove('active');
+                }
+            });
+        });
+    </script>
+</body>
+</html>
