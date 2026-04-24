@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅行推荐 - 发现世界的美好</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部导航栏 -->
+        <header class="top-nav">
+            <h1 class="app-title">旅行推荐</h1>
+            <div class="search-box">
+                <input type="text" placeholder="搜索目的地、景点...">
+                <button class="search-btn">🔍</button>
+            </div>
+        </header>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 热门景点推荐页面 -->
+            <section id="attractions" class="page active">
+                <div class="page-header">
+                    <h2>热门景点推荐</h2>
+                    <span class="subtitle">发现令人心动的旅行目的地</span>
+                </div>
+                
+                <div class="attractions-list">
+                    <div class="attraction-card">
+                        <div class="card-image">
+                            <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=雄伟%20的%20长城%20风景%2C%20阳光%20明媚%2C%20青山%20环绕%2C%20旅行%20摄影&image_size=landscape_4_3" alt="长城">
+                            <div class="rating">⭐ 4.9</div>
+                        </div>
+                        <div class="card-content">
+                            <h3>万里长城</h3>
+                            <p class="location">📍 北京市延庆区</p>
+                            <p class="description">中国古代的伟大防御工程，世界文化遗产之一。</p>
+                            <div class="card-footer">
+                                <span class="price">¥80起</span>
+                                <span class="view-more">查看详情 →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="attraction-card">
+                        <div class="card-image">
+                            <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=西湖%20断桥%20风景%2C%20烟雨%20蒙蒙%2C%20荷花%20盛开%2C%20杭州%20旅行&image_size=landscape_4_3" alt="西湖">
+                            <div class="rating">⭐ 4.8</div>
+                        </div>
+                        <div class="card-content">
+                            <h3>杭州西湖</h3>
+                            <p class="location">📍 浙江省杭州市</p>
+                            <p class="description">人间天堂，一湖秀水，三面云山，历代文人墨客的灵感源泉。</p>
+                            <div class="card-footer">
+                                <span class="price">免费</span>
+                                <span class="view-more">查看详情 →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="attraction-card">
+                        <div class="card-image">
+                            <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=张家界%20天门山%2C%20云海%20缭绕%2C%20奇峰%20异石%2C%20壮丽%20自然%20风光&image_size=landscape_4_3" alt="张家界">
+                            <div class="rating">⭐ 4.9</div>
+                        </div>
+                        <div class="card-content">
+                            <h3>张家界国家森林公园</h3>
+                            <p class="location">📍 湖南省张家界市</p>
+                            <p class="description">阿凡达取景地，奇峰三千，秀水八百，自然奇观令人叹为观止。</p>
+                            <div class="card-footer">
+                                <span class="price">¥225起</span>
+                                <span class="view-more">查看详情 →</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="attraction-card">
+                        <div class="card-image">
+                            <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=丽江%20古城%20夜景%2C%20灯火%20阑珊%2C%20纳西%20风格%20建筑%2C%20云南%20旅行&image_size=landscape_4_3" alt="丽江古城">
+                            <div class="rating">⭐ 4.7</div>
+                        </div>
+                        <div class="card-content">
+                            <h3>丽江古城</h3>
+                            <p class="location">📍 云南省丽江市</p>
+                            <p class="description">纳西族的古老家园，世界文化遗产，小桥流水，古朴典雅。</p>
+                            <div class="card-footer">
+                                <span class="price">¥50起</span>
+                                <span class="view-more">查看详情 →</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 旅行套餐页面 -->
+            <section id="packages" class="page">
+                <div class="page-header">
+                    <h2>精选旅行套餐</h2>
+                    <span class="subtitle">为您精心策划的完美行程</span>
+                </div>
+                
+                <div class="packages-list">
+                    <div class="package-card">
+                        <div class="package-image">
+                            <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=三亚%20海滩%20度假%2C%20阳光%20沙滩%20海浪%2C%20热带%20天堂%2C%20豪华%20酒店&image_size=landscape_4_3" alt="三亚之旅">
+                            <div class="package-badge">热销</div>
+                        </div>
+                        <div class="package-content">
+                            <h3>三亚5日4晚豪华游</h3>
+                            <div class="package-tags">
+                                <span class="tag">海滨度假</span>
+                                <span class="tag">五星酒店</span>
+                                <span class="tag">含接送机</span>
+                            </div>
+                            <p class="package-highlight">亮点：亚龙湾、蜈支洲岛、天涯海角、南山文化旅游区</p>
+                            <div class="package-footer">
+                                <div class="price-info">
+                                    <span class="original-price">¥8999</span>
+                                    <span class="current-price">¥6999</span>
+                                    <span class="price-unit">/人</span>
+                                </div>
+                                <div class="sales-info">已售 1256份</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="package-card">
+                        <div class="package-image">
+                            <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=云南%20大理%20丽江%20风景%2C%20玉龙雪山%2C%20古城%20风光%2C%20多彩%20民族%20文化&image_size=landscape_4_3" alt="云南之旅">
+                            <div class="package-badge">新品</div>
+                        </div>
+                        <div class="package-content">
+                            <h3>云南大理丽江7日深度游</h3>
+                            <div class="package-tags">
+                                <span class="tag">深度体验</span>
+                                <span class="tag">民族文化</span>
+                                <span class="tag">网红打卡</span>
+                            </div>
+                            <p class="package-highlight">亮点：大理古城、洱海、玉龙雪山、丽江古城、泸沽湖</p>
+                            <div class="package-footer">
+                                <div class="price-info">
+                                    <span class="original-price">¥12999</span>
+                                    <span class="current-price">¥9999</span>
+                                    <span class="price-unit">/人</span>
+                                </div>
+                                <div class="sales-info">已售 856份</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="package-card">
+                        <div class="package-image">
+                            <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=成都%20美食%20之旅%2C%20火锅%20串串%2C%20宽窄%20巷子%2C%20熊猫%20基地&image_size=landscape_4_3" alt="成都之旅">
+                            <div class="package-badge">爆款</div>
+                        </div>
+                        <div class="package-content">
+                            <h3>成都4日3晚美食文化游</h3>
+                            <div class="package-tags">
+                                <span class="tag">美食之旅</span>
+                                <span class="tag">文化体验</span>
+                                <span class="tag">萌宠互动</span>
+                            </div>
+                            <p class="package-highlight">亮点：大熊猫繁育研究基地、宽窄巷子、锦里古街、都江堰</p>
+                            <div class="package-footer">
+                                <div class="price-info">
+                                    <span class="original-price">¥5999</span>
+                                    <span class="current-price">¥4599</span>
+                                    <span class="price-unit">/人</span>
+                                </div>
+                                <div class="sales-info">已售 2134份</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- VIP专享页面 -->
+            <section id="vip" class="page">
+                <div class="page-header vip-header">
+                    <div class="vip-icon">👑</div>
+                    <h2>VIP专享</h2>
+                    <span class="subtitle">尊贵体验，专属优惠</span>
+                </div>
+
+                <div class="vip-section">
+                    <div class="vip-search-box">
+                        <div class="search-tabs">
+                            <button class="tab-btn active" onclick="switchVipTab('premium')">高端套餐</button>
+                            <button class="tab-btn" onclick="switchVipTab('discount')">优惠套餐</button>
+                        </div>
+                        <div class="search-filters">
+                            <select class="filter-select">
+                                <option>全部目的地</option>
+                                <option>国内</option>
+                                <option>出境</option>
+                            </select>
+                            <select class="filter-select">
+                                <option>价格区间</option>
+                                <option>5000以下</option>
+                                <option>5000-10000</option>
+                                <option>10000-20000</option>
+                                <option>20000以上</option>
+                            </select>
+                            <button class="filter-btn">筛选</button>
+                        </div>
+                    </div>
+
+                    <!-- 高端套餐 -->
+                    <div id="premium-packages" class="vip-packages-list">
+                        <h3 class="section-title">✨ 精选高端套餐</h3>
+                        
+                        <div class="vip-package-card premium">
+                            <div class="vip-package-image">
+                                <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=马尔代夫%20水上%20别墅%2C%20碧海%20蓝天%2C%20私人%20泳池%2C%20豪华%20度假&image_size=landscape_4_3" alt="马尔代夫">
+                                <div class="vip-badge">VIP尊享</div>
+                            </div>
+                            <div class="vip-package-content">
+                                <h4>马尔代夫7日5晚私密度假</h4>
+                                <div class="vip-features">
+                                    <span>🏝️ 水上别墅</span>
+                                    <span>✈️ 商务舱</span>
+                                    <span>🍽️ 私人厨师</span>
+                                    <span>💆 专属SPA</span>
+                                </div>
+                                <p class="vip-desc">入住六星级水上别墅，享受私人管家服务，专车接送，米其林级别餐饮体验。</p>
+                                <div class="vip-price">
+                                    <span class="vip-original">¥88888</span>
+                                    <span class="vip-current">¥68888</span>
+                                    <span class="vip-unit">/人</span>
+                                    <button class="book-btn">立即预订</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="vip-package-card premium">
+                            <div class="vip-package-image">
+                                <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=瑞士%20阿尔卑斯山%2C%20雪山%2C%20豪华%20火车%2C%20金色%20山口%2C%20精致%20小镇&image_size=landscape_4_3" alt="瑞士">
+                                <div class="vip-badge">VIP尊享</div>
+                            </div>
+                            <div class="vip-package-content">
+                                <h4>瑞士10日深度尊享之旅</h4>
+                                <div class="vip-features">
+                                    <span>🚂 金色山口快车</span>
+                                    <span>🏰 城堡酒店</span>
+                                    <span>🍷 私人品酒</span>
+                                    <span>🎿 私人教练</span>
+                                </div>
+                                <p class="vip-desc">乘坐金色山口快车，入住百年历史城堡酒店，私人导游全程陪同，深度体验瑞士风情。</p>
+                                <div class="vip-price">
+                                    <span class="vip-original">¥128888</span>
+                                    <span class="vip-current">¥98888</span>
+                                    <span class="vip-unit">/人</span>
+                                    <button class="book-btn">立即预订</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 优惠套餐 -->
+                    <div id="discount-packages" class="vip-packages-list" style="display: none;">
+                        <h3 class="section-title">🔥 VIP专属优惠</h3>
+                        
+                        <div class="vip-package-card discount">
+                            <div class="vip-package-image">
+                                <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=泰国%20曼谷%20芭提雅%2C%20热带%20风情%2C%20美食%2C%20海滩%2C%20文化%20古迹&image_size=landscape_4_3" alt="泰国">
+                                <div class="discount-badge">立减2000</div>
+                            </div>
+                            <div class="vip-package-content">
+                                <h4>泰国曼谷芭提雅6日5晚</h4>
+                                <div class="vip-features">
+                                    <span>🏛️ 大皇宫</span>
+                                    <span>🏖️ 格兰岛</span>
+                                    <span>🍜 美食体验</span>
+                                    <span>🛍️ 购物狂欢</span>
+                                </div>
+                                <p class="vip-desc">经典路线，全程四星酒店，含签证服务费，赠送泰式SPA体验。</p>
+                                <div class="vip-price">
+                                    <span class="vip-original">¥7999</span>
+                                    <span class="vip-current">¥5999</span>
+                                    <span class="vip-unit">/人</span>
+                                    <button class="book-btn">立即预订</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="vip-package-card discount">
+                            <div class="vip-package-image">
+                                <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=日本%20东京%20大阪%2C%20樱花%2C%20富士山%2C%20美食%2C%20现代%20都市&image_size=landscape_4_3" alt="日本">
+                                <div class="discount-badge">立减1500</div>
+                            </div>
+                            <div class="vip-package-content">
+                                <h4>日本东京大阪7日经典游</h4>
+                                <div class="vip-features">
+                                    <span>🗼 东京塔</span>
+                                    <span>⛩️ 浅草寺</span>
+                                    <span>🍣 地道美食</span>
+                                    <span>🛒 免税购物</span>
+                                </div>
+                                <p class="vip-desc">关东关西深度游览，含JR Pass通票，赠送环球影城门票。</p>
+                                <div class="vip-price">
+                                    <span class="vip-original">¥11999</span>
+                                    <span class="vip-current">¥10499</span>
+                                    <span class="vip-unit">/人</span>
+                                    <button class="book-btn">立即预订</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 个人中心页面 -->
+            <section id="profile" class="page">
+                <div class="profile-header">
+                    <div class="user-info">
+                        <div class="avatar">
+                            <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=卡通%20风格%20用户%20头像%2C%20阳光%20帅气%20男性%2C%20旅行%20主题&image_size=square" alt="用户头像">
+                        </div>
+                        <div class="user-details">
+                            <h3 class="username">旅行达人</h3>
+                            <p class="user-level">🌟 VIP会员</p>
+                            <div class="user-stats">
+                                <span>出行 <strong>28</strong> 次</span>
+                                <span>积分 <strong>15680</strong></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3 class="section-title">我的订单</h3>
+                    
+                    <div class="order-tabs">
+                        <button class="order-tab active" onclick="switchOrderTab('all')">全部</button>
+                        <button class="order-tab" onclick="switchOrderTab('pending')">待出行</button>
+                        <button class="order-tab" onclick="switchOrderTab('completed')">已完成</button>
+                        <button class="order-tab" onclick="switchOrderTab('cancelled')">已取消</button>
+                    </div>
+
+                    <div class="orders-list">
+                        <div class="order-card">
+                            <div class="order-header">
+                                <span class="order-number">订单号：202405200001</span>
+                                <span class="order-status status-pending">待出行</span>
+                            </div>
+                            <div class="order-content">
+                                <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=三亚%20亚龙湾%20海滩%2C%20阳光%20明媚%2C%20度假%20氛围&image_size=landscape_4_3" alt="三亚" class="order-image">
+                                <div class="order-details">
+                                    <h4 class="order-title">三亚5日4晚豪华游</h4>
+                                    <p class="order-date">出发日期：2024-06-15</p>
+                                    <p class="order-people">出行人数：2人</p>
+                                    <div class="order-price">订单金额：<strong>¥13998</strong></div>
+                                </div>
+                            </div>
+                            <div class="order-actions">
+                                <button class="action-btn secondary">取消订单</button>
+                                <button class="action-btn primary">查看详情</button>
+                            </div>
+                        </div>
+
+                        <div class="order-card">
+                            <div class="order-header">
+                                <span class="order-number">订单号：202404150002</span>
+                                <span class="order-status status-completed">已完成</span>
+                            </div>
+                            <div class="order-content">
+                                <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=成都%20大熊猫%2C%20可爱%20萌宠%2C%20竹林%2C%20旅行&image_size=landscape_4_3" alt="成都" class="order-image">
+                                <div class="order-details">
+                                    <h4 class="order-title">成都4日3晚美食文化游</h4>
+                                    <p class="order-date">出发日期：2024-04-20</p>
+                                    <p class="order-people">出行人数：1人</p>
+                                    <div class="order-price">订单金额：<strong>¥4599</strong></div>
+                                </div>
+                            </div>
+                            <div class="order-actions">
+                                <button class="action-btn secondary">再次预订</button>
+                                <button class="action-btn primary">发表评价</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3 class="section-title">个人信息</h3>
+                    
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">真实姓名</span>
+                            <span class="info-value">张三</span>
+                            <span class="info-arrow">›</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">手机号码</span>
+                            <span class="info-value">138****8888</span>
+                            <span class="info-arrow">›</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">身份证号</span>
+                            <span class="info-value">110************123</span>
+                            <span class="info-arrow">›</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">电子邮箱</span>
+                            <span class="info-value">travel@example.com</span>
+                            <span class="info-arrow">›</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">联系地址</span>
+                            <span class="info-value">北京市朝阳区</span>
+                            <span class="info-arrow">›</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="profile-section">
+                    <h3 class="section-title">设置</h3>
+                    
+                    <div class="info-list">
+                        <div class="info-item">
+                            <span class="info-label">消息通知</span>
+                            <span class="info-arrow">›</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">隐私设置</span>
+                            <span class="info-arrow">›</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">意见反馈</span>
+                            <span class="info-arrow">›</span>
+                        </div>
+                        <div class="info-item">
+                            <span class="info-label">关于我们</span>
+                            <span class="info-arrow">›</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button class="logout-btn">退出登录</button>
+            </section>
+        </main>
+
+        <!-- 底部导航栏 -->
+        <nav class="bottom-nav">
+            <div class="nav-item active" onclick="switchPage('attractions')">
+                <div class="nav-icon">🏠</div>
+                <span class="nav-label">热门景点</span>
+            </div>
+            <div class="nav-item" onclick="switchPage('packages')">
+                <div class="nav-icon">🎒</div>
+                <span class="nav-label">旅行套餐</span>
+            </div>
+            <div class="nav-item" onclick="switchPage('vip')">
+                <div class="nav-icon">👑</div>
+                <span class="nav-label">VIP专享</span>
+            </div>
+            <div class="nav-item" onclick="switchPage('profile')">
+                <div class="nav-icon">👤</div>
+                <span class="nav-label">个人中心</span>
+            </div>
+        </nav>
+    </div>
+
+
+
+    <script src="script.js"></script>
+</body>
+</html>
