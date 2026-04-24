@@ -185,10 +185,6 @@
 
                 <div class="vip-section">
                     <div class="vip-search-box">
-                        <div class="search-tabs">
-                            <button class="tab-btn active" onclick="switchVipTab('premium')">高端套餐</button>
-                            <button class="tab-btn" onclick="switchVipTab('discount')">优惠套餐</button>
-                        </div>
                         <div class="search-filters">
                             <select class="filter-select">
                                 <option>全部目的地</option>
@@ -206,9 +202,9 @@
                         </div>
                     </div>
 
-                    <!-- 高端套餐 -->
-                    <div id="premium-packages" class="vip-packages-list">
-                        <h3 class="section-title">✨ 精选高端套餐</h3>
+                    <!-- VIP专享套餐列表（高端+优惠混合呈现） -->
+                    <div class="vip-packages-list">
+                        <h3 class="section-title">✨ VIP专享精选</h3>
                         
                         <div class="vip-package-card premium">
                             <div class="vip-package-image">
@@ -233,34 +229,6 @@
                             </div>
                         </div>
 
-                        <div class="vip-package-card premium">
-                            <div class="vip-package-image">
-                                <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=瑞士%20阿尔卑斯山%2C%20雪山%2C%20豪华%20火车%2C%20金色%20山口%2C%20精致%20小镇&image_size=landscape_4_3" alt="瑞士">
-                                <div class="vip-badge">VIP尊享</div>
-                            </div>
-                            <div class="vip-package-content">
-                                <h4>瑞士10日深度尊享之旅</h4>
-                                <div class="vip-features">
-                                    <span>🚂 金色山口快车</span>
-                                    <span>🏰 城堡酒店</span>
-                                    <span>🍷 私人品酒</span>
-                                    <span>🎿 私人教练</span>
-                                </div>
-                                <p class="vip-desc">乘坐金色山口快车，入住百年历史城堡酒店，私人导游全程陪同，深度体验瑞士风情。</p>
-                                <div class="vip-price">
-                                    <span class="vip-original">¥128888</span>
-                                    <span class="vip-current">¥98888</span>
-                                    <span class="vip-unit">/人</span>
-                                    <button class="book-btn">立即预订</button>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 优惠套餐 -->
-                    <div id="discount-packages" class="vip-packages-list" style="display: none;">
-                        <h3 class="section-title">🔥 VIP专属优惠</h3>
-                        
                         <div class="vip-package-card discount">
                             <div class="vip-package-image">
                                 <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=泰国%20曼谷%20芭提雅%2C%20热带%20风情%2C%20美食%2C%20海滩%2C%20文化%20古迹&image_size=landscape_4_3" alt="泰国">
@@ -278,6 +246,29 @@
                                 <div class="vip-price">
                                     <span class="vip-original">¥7999</span>
                                     <span class="vip-current">¥5999</span>
+                                    <span class="vip-unit">/人</span>
+                                    <button class="book-btn">立即预订</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="vip-package-card premium">
+                            <div class="vip-package-image">
+                                <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=瑞士%20阿尔卑斯山%2C%20雪山%2C%20豪华%20火车%2C%20金色%20山口%2C%20精致%20小镇&image_size=landscape_4_3" alt="瑞士">
+                                <div class="vip-badge">VIP尊享</div>
+                            </div>
+                            <div class="vip-package-content">
+                                <h4>瑞士10日深度尊享之旅</h4>
+                                <div class="vip-features">
+                                    <span>🚂 金色山口快车</span>
+                                    <span>🏰 城堡酒店</span>
+                                    <span>🍷 私人品酒</span>
+                                    <span>🎿 私人教练</span>
+                                </div>
+                                <p class="vip-desc">乘坐金色山口快车，入住百年历史城堡酒店，私人导游全程陪同，深度体验瑞士风情。</p>
+                                <div class="vip-price">
+                                    <span class="vip-original">¥128888</span>
+                                    <span class="vip-current">¥98888</span>
                                     <span class="vip-unit">/人</span>
                                     <button class="book-btn">立即预订</button>
                                 </div>

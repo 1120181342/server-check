@@ -27,27 +27,6 @@ function switchPage(pageName) {
     });
 }
 
-// VIP标签切换
-function switchVipTab(tabType) {
-    const tabBtns = document.querySelectorAll('.search-tabs .tab-btn');
-    const premiumPackages = document.getElementById('premium-packages');
-    const discountPackages = document.getElementById('discount-packages');
-    
-    tabBtns.forEach(btn => {
-        btn.classList.remove('active');
-    });
-    
-    if (tabType === 'premium') {
-        tabBtns[0].classList.add('active');
-        premiumPackages.style.display = 'flex';
-        discountPackages.style.display = 'none';
-    } else {
-        tabBtns[1].classList.add('active');
-        premiumPackages.style.display = 'none';
-        discountPackages.style.display = 'flex';
-    }
-}
-
 // 订单标签切换
 function switchOrderTab(tabType) {
     const orderTabs = document.querySelectorAll('.order-tab');
