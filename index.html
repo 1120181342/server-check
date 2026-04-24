@@ -27,7 +27,7 @@
                 </div>
                 
                 <div class="attractions-list">
-                    <div class="attraction-card" onclick="showAttractionDetail(0)">
+                    <div class="attraction-card">
                         <div class="card-image">
                             <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=雄伟%20的%20长城%20风景%2C%20阳光%20明媚%2C%20青山%20环绕%2C%20旅行%20摄影&image_size=landscape_4_3" alt="长城">
                             <div class="rating">⭐ 4.9</div>
@@ -43,7 +43,7 @@
                         </div>
                     </div>
 
-                    <div class="attraction-card" onclick="showAttractionDetail(1)">
+                    <div class="attraction-card">
                         <div class="card-image">
                             <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=西湖%20断桥%20风景%2C%20烟雨%20蒙蒙%2C%20荷花%20盛开%2C%20杭州%20旅行&image_size=landscape_4_3" alt="西湖">
                             <div class="rating">⭐ 4.8</div>
@@ -59,7 +59,7 @@
                         </div>
                     </div>
 
-                    <div class="attraction-card" onclick="showAttractionDetail(2)">
+                    <div class="attraction-card">
                         <div class="card-image">
                             <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=张家界%20天门山%2C%20云海%20缭绕%2C%20奇峰%20异石%2C%20壮丽%20自然%20风光&image_size=landscape_4_3" alt="张家界">
                             <div class="rating">⭐ 4.9</div>
@@ -75,7 +75,7 @@
                         </div>
                     </div>
 
-                    <div class="attraction-card" onclick="showAttractionDetail(3)">
+                    <div class="attraction-card">
                         <div class="card-image">
                             <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=丽江%20古城%20夜景%2C%20灯火%20阑珊%2C%20纳西%20风格%20建筑%2C%20云南%20旅行&image_size=landscape_4_3" alt="丽江古城">
                             <div class="rating">⭐ 4.7</div>
@@ -101,7 +101,7 @@
                 </div>
                 
                 <div class="packages-list">
-                    <div class="package-card" onclick="showPackageDetail(0)">
+                    <div class="package-card">
                         <div class="package-image">
                             <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=三亚%20海滩%20度假%2C%20阳光%20沙滩%20海浪%2C%20热带%20天堂%2C%20豪华%20酒店&image_size=landscape_4_3" alt="三亚之旅">
                             <div class="package-badge">热销</div>
@@ -125,7 +125,7 @@
                         </div>
                     </div>
 
-                    <div class="package-card" onclick="showPackageDetail(1)">
+                    <div class="package-card">
                         <div class="package-image">
                             <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=云南%20大理%20丽江%20风景%2C%20玉龙雪山%2C%20古城%20风光%2C%20多彩%20民族%20文化&image_size=landscape_4_3" alt="云南之旅">
                             <div class="package-badge">新品</div>
@@ -149,7 +149,7 @@
                         </div>
                     </div>
 
-                    <div class="package-card" onclick="showPackageDetail(2)">
+                    <div class="package-card">
                         <div class="package-image">
                             <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=成都%20美食%20之旅%2C%20火锅%20串串%2C%20宽窄%20巷子%2C%20熊猫%20基地&image_size=landscape_4_3" alt="成都之旅">
                             <div class="package-badge">爆款</div>
@@ -461,92 +461,7 @@
         </nav>
     </div>
 
-    <!-- 景点详情弹窗 -->
-    <div id="attraction-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button class="modal-close" onclick="closeAttractionModal()">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="detail-image">
-                    <img id="detail-image" src="" alt="景点图片">
-                </div>
-                <div class="detail-content">
-                    <h2 id="detail-title">景点名称</h2>
-                    <div class="detail-meta">
-                        <span id="detail-location">📍 位置</span>
-                        <span id="detail-rating">⭐ 评分</span>
-                    </div>
-                    <div class="detail-section">
-                        <h3>景点介绍</h3>
-                        <p id="detail-description">详细描述...</p>
-                    </div>
-                    <div class="detail-section">
-                        <h3>开放时间</h3>
-                        <p id="detail-time">具体开放时间...</p>
-                    </div>
-                    <div class="detail-section">
-                        <h3>门票价格</h3>
-                        <p id="detail-price">门票价格信息...</p>
-                    </div>
-                    <div class="detail-section">
-                        <h3>交通指南</h3>
-                        <p id="detail-transport">交通信息...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn-secondary">收藏</button>
-                <button class="modal-btn-primary">立即预订</button>
-            </div>
-        </div>
-    </div>
 
-    <!-- 套餐详情弹窗 -->
-    <div id="package-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <button class="modal-close" onclick="closePackageModal()">✕</button>
-            </div>
-            <div class="modal-body">
-                <div class="detail-image">
-                    <img id="package-detail-image" src="" alt="套餐图片">
-                </div>
-                <div class="detail-content">
-                    <h2 id="package-detail-title">套餐名称</h2>
-                    <div class="detail-meta">
-                        <span id="package-detail-duration">⏰ 行程天数</span>
-                        <span id="package-detail-rating">⭐ 用户评分</span>
-                    </div>
-                    <div class="package-price-section">
-                        <span class="package-original-price" id="package-original-price">原价</span>
-                        <span class="package-current-price" id="package-current-price">现价</span>
-                        <span class="package-price-unit">/人</span>
-                    </div>
-                    <div class="detail-section">
-                        <h3>行程特色</h3>
-                        <ul id="package-features" class="features-list">
-                            <!-- 动态填充 -->
-                        </ul>
-                    </div>
-                    <div class="detail-section">
-                        <h3>行程安排</h3>
-                        <div id="package-itinerary" class="itinerary-list">
-                            <!-- 动态填充 -->
-                        </div>
-                    </div>
-                    <div class="detail-section">
-                        <h3>费用包含</h3>
-                        <p id="package-includes">费用包含内容...</p>
-                    </div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="modal-btn-secondary">收藏</button>
-                <button class="modal-btn-primary">立即预订</button>
-            </div>
-        </div>
-    </div>
 
     <script src="script.js"></script>
 </body>
