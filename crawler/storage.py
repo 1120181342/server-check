@@ -19,7 +19,7 @@ import aiohttp
 import requests
 from bs4 import BeautifulSoup
 
-from core import Document, HtmlParser
+from core import Document, HtmlParser, RateLimiter, UserAgentRotator
 
 logger = logging.getLogger(__name__)
 
@@ -328,7 +328,7 @@ class StorageManager:
         logger.info(f"Created HTML index at: {index_path}")
 
 
-class Downloader:
+class ConcurrentDownloader:
     
     def __init__(
         self,
@@ -340,86 +340,194 @@ class Downloader:
         
         request_config = config.get('crawler', {}).get('request', {})
         self.timeout = request_config.get('timeout', 30)
-        self.headers = request_config.get('headers', {})
+        self.base_headers = request_config.get('headers', {})
+        
+        user_agents = request_config.get('user_agents', [])
+        enable_ua_rotation = request_config.get('enable_ua_rotation', True)
+        self.ua_rotator = UserAgentRotator(user_agents, enable_ua_rotation)
+        
+        concurrency_config = config.get('crawler', {}).get('concurrency', {})
+        self.max_workers = concurrency_config.get('max_workers', 20)
+        self.rate_limit = concurrency_config.get('rate_limit', 0.1)
+        self.min_delay = concurrency_config.get('min_delay', 0.05)
+        self.max_delay = concurrency_config.get('max_delay', 0.2)
+        self.enable_random_delay = concurrency_config.get('enable_random_delay', True)
+        
+        self.rate_limiter = RateLimiter(
+            rate_limit=self.rate_limit,
+            min_delay=self.min_delay,
+            max_delay=self.max_delay,
+            enable_random_delay=self.enable_random_delay
+        )
+        
+        self._downloaded_count = 0
+        self._downloaded_lock = asyncio.Lock()
+        self._failed_urls: List[str] = []
+        self._failed_lock = asyncio.Lock()
     
-    async def download_document(
+    async def _get_headers(self) -> Dict[str, str]:
+        headers = self.base_headers.copy()
+        user_agent = await self.ua_rotator.get_user_agent()
+        headers['User-Agent'] = user_agent
+        return headers
+    
+    async def download_single_document(
         self,
         doc: Document,
-        session: Optional[aiohttp.ClientSession] = None
+        session: aiohttp.ClientSession
     ) -> Document:
-        logger.info(f"Downloading document: {doc.title} ({doc.url})")
+        logger.debug(f"Downloading: {doc.title or 'No Title'} ({doc.url})")
+        
+        await self.rate_limiter.acquire()
         
         if doc.url.lower().endswith('.pdf'):
-            doc.file_type = 'pdf'
-            save_path = self.storage.get_document_path(doc, 'pdf')
-            success = await self.storage.download_file(
-                doc.url, save_path, session
-            )
-            if success:
-                doc.downloaded = True
-                doc.save_path = str(save_path)
-            return doc
+            return await self._download_pdf(doc, session)
+        
+        return await self._download_html(doc, session)
+    
+    async def _download_pdf(
+        self,
+        doc: Document,
+        session: aiohttp.ClientSession
+    ) -> Document:
+        doc.file_type = 'pdf'
+        save_path = self.storage.get_document_path(doc, 'pdf')
         
         try:
-            if session:
-                async with session.get(
-                    doc.url,
-                    headers=self.headers,
-                    timeout=aiohttp.ClientTimeout(total=self.timeout)
-                ) as response:
-                    if response.status == 200:
-                        content = await response.text()
-                        doc.content = content
-                        
+            headers = await self._get_headers()
+            async with session.get(
+                doc.url,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=60)
+            ) as response:
+                if response.status == 200:
+                    content = await response.read()
+                    async with aiofiles.open(save_path, 'wb') as f:
+                        await f.write(content)
+                    
+                    doc.downloaded = True
+                    doc.save_path = str(save_path)
+                    await self._increment_downloaded()
+                    logger.info(f"Downloaded PDF: {doc.title}")
+                else:
+                    logger.warning(f"Failed to download PDF, status: {response.status}")
+                    
+        except Exception as e:
+            logger.error(f"Error downloading PDF {doc.url}: {e}")
+            await self._add_failed(doc.url)
+        
+        return doc
+    
+    async def _download_html(
+        self,
+        doc: Document,
+        session: aiohttp.ClientSession
+    ) -> Document:
+        try:
+            headers = await self._get_headers()
+            async with session.get(
+                doc.url,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=self.timeout)
+            ) as response:
+                if response.status == 200:
+                    content = await response.text()
+                    doc.content = content
+                    
+                    if not doc.title or not doc.links:
                         soup = HtmlParser.parse(content, doc.url)
                         if not doc.title:
                             doc.title = HtmlParser.extract_title(soup)
-                        
-                        await self.storage.save_document(doc)
-            else:
-                response = requests.get(
-                    doc.url,
-                    headers=self.headers,
-                    timeout=self.timeout
-                )
-                if response.status_code == 200:
-                    doc.content = response.text
-                    
-                    soup = HtmlParser.parse(response.text, doc.url)
-                    if not doc.title:
-                        doc.title = HtmlParser.extract_title(soup)
+                        if not doc.links:
+                            doc.links = HtmlParser.extract_links(soup, doc.url)
                     
                     await self.storage.save_document(doc)
+                    await self._increment_downloaded()
+                    logger.info(f"Downloaded: {doc.title or doc.url}")
+                else:
+                    logger.warning(f"Failed to download HTML, status: {response.status}")
+                    await self._add_failed(doc.url)
                     
         except Exception as e:
-            logger.error(f"Failed to download document {doc.url}: {e}")
+            logger.error(f"Error downloading {doc.url}: {e}")
+            await self._add_failed(doc.url)
         
         return doc
+    
+    async def _increment_downloaded(self):
+        async with self._downloaded_lock:
+            self._downloaded_count += 1
+    
+    async def _add_failed(self, url: str):
+        async with self._failed_lock:
+            self._failed_urls.append(url)
     
     async def download_documents(
         self,
         documents: List[Document],
-        max_concurrent: int = 5
+        max_concurrent: Optional[int] = None
     ) -> List[Document]:
-        logger.info(f"Starting download of {len(documents)} documents...")
+        max_concurrent = max_concurrent or self.max_workers
+        total = len(documents)
         
-        async with aiohttp.ClientSession() as session:
-            semaphore = asyncio.Semaphore(max_concurrent)
-            
-            async def download_with_semaphore(doc: Document) -> Document:
-                async with semaphore:
-                    return await self.download_document(doc, session)
-            
-            tasks = [download_with_semaphore(doc) for doc in documents]
-            results = await asyncio.gather(*tasks, return_exceptions=True)
+        logger.info(f"Starting concurrent download of {total} documents with {max_concurrent} workers...")
         
-        downloaded_docs = []
-        for result in results:
-            if isinstance(result, Document):
-                downloaded_docs.append(result)
-            elif isinstance(result, Exception):
-                logger.error(f"Download task failed: {result}")
+        self._downloaded_count = 0
+        self._failed_urls = []
         
-        logger.info(f"Downloaded {len(downloaded_docs)} of {len(documents)} documents")
+        download_queue = asyncio.Queue()
+        for doc in documents:
+            await download_queue.put(doc)
+        
+        results: List[Document] = []
+        results_lock = asyncio.Lock()
+        
+        async def worker(worker_id: int):
+            nonlocal results
+            while True:
+                try:
+                    doc = await asyncio.wait_for(download_queue.get(), timeout=1.0)
+                except asyncio.TimeoutError:
+                    return
+                
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        downloaded_doc = await self.download_single_document(doc, session)
+                    
+                    async with results_lock:
+                        results.append(downloaded_doc)
+                    
+                    if self._downloaded_count % 10 == 0:
+                        logger.info(f"Progress: {self._downloaded_count}/{total} downloaded")
+                        
+                except Exception as e:
+                    logger.error(f"Worker {worker_id} error: {e}")
+                finally:
+                    download_queue.task_done()
+        
+        workers = [asyncio.create_task(worker(i)) for i in range(max_concurrent)]
+        
+        await download_queue.join()
+        
+        for w in workers:
+            w.cancel()
+        
+        await asyncio.gather(*workers, return_exceptions=True)
+        
+        downloaded_docs = [doc for doc in results if doc.downloaded]
+        
+        logger.info("=" * 60)
+        logger.info("Download Summary:")
+        logger.info(f"  Total: {total}")
+        logger.info(f"  Downloaded: {len(downloaded_docs)}")
+        logger.info(f"  Failed: {len(self._failed_urls)}")
+        if self._failed_urls:
+            logger.info(f"  Failed URLs: {self._failed_urls[:5]}")
+            if len(self._failed_urls) > 5:
+                logger.info(f"  ... and {len(self._failed_urls) - 5} more")
+        logger.info("=" * 60)
         
         return downloaded_docs
+
+
+Downloader = ConcurrentDownloader

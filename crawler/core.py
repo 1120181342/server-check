@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 """
 华为E8000防火墙文档爬虫 - 核心模块
+高性能并发版本
 """
 
 import asyncio
 import logging
+import random
 import time
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
@@ -43,6 +45,89 @@ class CrawlResult:
     response_time: float = 0.0
 
 
+class RateLimiter:
+    
+    def __init__(
+        self,
+        rate_limit: float = 0.1,
+        min_delay: float = 0.05,
+        max_delay: float = 0.2,
+        enable_random_delay: bool = True
+    ):
+        self.rate_limit = rate_limit
+        self.min_delay = min_delay
+        self.max_delay = max_delay
+        self.enable_random_delay = enable_random_delay
+        
+        self._lock = asyncio.Lock()
+        self._last_request_time = 0.0
+        self._request_count = 0
+        self._window_start_time = time.time()
+        self._window_requests = 0
+        self._max_per_second = int(1.0 / rate_limit) if rate_limit > 0 else 100
+    
+    async def acquire(self):
+        async with self._lock:
+            current_time = time.time()
+            
+            elapsed_in_window = current_time - self._window_start_time
+            if elapsed_in_window >= 1.0:
+                self._window_start_time = current_time
+                self._window_requests = 0
+            
+            if self._window_requests >= self._max_per_second:
+                wait_time = 1.0 - elapsed_in_window
+                await asyncio.sleep(wait_time)
+                current_time = time.time()
+                self._window_start_time = current_time
+                self._window_requests = 0
+            
+            elapsed = current_time - self._last_request_time
+            base_delay = max(0, self.rate_limit - elapsed)
+            
+            if self.enable_random_delay:
+                random_delay = random.uniform(self.min_delay, self.max_delay)
+                total_delay = base_delay + random_delay
+            else:
+                total_delay = base_delay
+            
+            if total_delay > 0:
+                await asyncio.sleep(total_delay)
+            
+            self._last_request_time = time.time()
+            self._request_count += 1
+            self._window_requests += 1
+
+
+class UserAgentRotator:
+    
+    def __init__(
+        self,
+        user_agents: List[str],
+        enable_rotation: bool = True
+    ):
+        self.user_agents = user_agents or self._get_default_user_agents()
+        self.enable_rotation = enable_rotation
+        self._index = 0
+        self._lock = asyncio.Lock()
+    
+    def _get_default_user_agents(self) -> List[str]:
+        return [
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0",
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        ]
+    
+    async def get_user_agent(self) -> str:
+        if not self.enable_rotation:
+            return self.user_agents[0]
+        
+        async with self._lock:
+            ua = self.user_agents[self._index]
+            self._index = (self._index + 1) % len(self.user_agents)
+            return ua
+
+
 class BaseCrawler(ABC):
     
     def __init__(
@@ -53,8 +138,9 @@ class BaseCrawler(ABC):
         self.config = config
         self.session = session
         self._visited_urls: Set[str] = set()
+        self._visited_lock = asyncio.Lock()
         self._request_count: int = 0
-        self._last_request_time: float = 0.0
+        self._request_lock = asyncio.Lock()
         
         request_config = config.get('crawler', {}).get('request', {})
         self.timeout = request_config.get('timeout', 30)
@@ -62,21 +148,41 @@ class BaseCrawler(ABC):
         self.retry_delay = request_config.get('retry_delay', 2)
         self.headers = request_config.get('headers', {})
         
+        user_agents = request_config.get('user_agents', [])
+        enable_ua_rotation = request_config.get('enable_ua_rotation', True)
+        self.ua_rotator = UserAgentRotator(user_agents, enable_ua_rotation)
+        
         concurrency_config = config.get('crawler', {}).get('concurrency', {})
-        self.max_workers = concurrency_config.get('max_workers', 5)
-        self.rate_limit = concurrency_config.get('rate_limit', 1.0)
+        self.max_workers = concurrency_config.get('max_workers', 20)
+        self.rate_limit = concurrency_config.get('rate_limit', 0.1)
+        self.min_delay = concurrency_config.get('min_delay', 0.05)
+        self.max_delay = concurrency_config.get('max_delay', 0.2)
+        self.enable_random_delay = concurrency_config.get('enable_random_delay', True)
+        
+        self.rate_limiter = RateLimiter(
+            rate_limit=self.rate_limit,
+            min_delay=self.min_delay,
+            max_delay=self.max_delay,
+            enable_random_delay=self.enable_random_delay
+        )
     
     @property
     def visited_urls(self) -> Set[str]:
         return self._visited_urls.copy()
     
-    def has_visited(self, url: str) -> bool:
+    async def has_visited(self, url: str) -> bool:
         normalized_url = self._normalize_url(url)
-        return normalized_url in self._visited_urls
+        async with self._visited_lock:
+            return normalized_url in self._visited_urls
     
-    def mark_visited(self, url: str):
+    async def mark_visited(self, url: str):
         normalized_url = self._normalize_url(url)
-        self._visited_urls.add(normalized_url)
+        async with self._visited_lock:
+            self._visited_urls.add(normalized_url)
+    
+    async def increment_request_count(self):
+        async with self._request_lock:
+            self._request_count += 1
     
     def _normalize_url(self, url: str) -> str:
         parsed = urlparse(url)
@@ -85,18 +191,11 @@ class BaseCrawler(ABC):
             normalized += f"?{parsed.query}"
         return normalized.rstrip('/')
     
-    async def _rate_limit_wait(self):
-        if self.rate_limit <= 0:
-            return
-        
-        current_time = time.time()
-        elapsed = current_time - self._last_request_time
-        
-        if elapsed < self.rate_limit:
-            wait_time = self.rate_limit - elapsed
-            await asyncio.sleep(wait_time)
-        
-        self._last_request_time = time.time()
+    async def _get_headers(self) -> Dict[str, str]:
+        headers = self.headers.copy()
+        user_agent = await self.ua_rotator.get_user_agent()
+        headers['User-Agent'] = user_agent
+        return headers
     
     @retry(
         stop=stop_after_attempt(3),
@@ -110,7 +209,7 @@ class BaseCrawler(ABC):
     ) -> CrawlResult:
         start_time = time.time()
         
-        if self.has_visited(url):
+        if await self.has_visited(url):
             logger.debug(f"URL already visited: {url}")
             return CrawlResult(
                 success=False,
@@ -118,16 +217,19 @@ class BaseCrawler(ABC):
                 response_time=0.0
             )
         
-        await self._rate_limit_wait()
+        await self.rate_limiter.acquire()
         
         try:
-            if self.session:
-                response = await self._async_fetch(url, method, **kwargs)
-            else:
-                response = self._sync_fetch(url, method, **kwargs)
+            headers = await self._get_headers()
+            all_headers = {**headers, **kwargs.get('headers', {})}
             
-            self.mark_visited(url)
-            self._request_count += 1
+            if self.session:
+                response = await self._async_fetch(url, method, headers=all_headers, **kwargs)
+            else:
+                response = self._sync_fetch(url, method, headers=all_headers, **kwargs)
+            
+            await self.mark_visited(url)
+            await self.increment_request_count()
             
             response_time = time.time() - start_time
             
@@ -163,7 +265,7 @@ class BaseCrawler(ABC):
             url,
             headers=kwargs.get('headers', self.headers),
             timeout=aiohttp.ClientTimeout(total=self.timeout),
-            **kwargs
+            **{k: v for k, v in kwargs.items() if k != 'headers'}
         ) as response:
             content = await response.text()
             return {
@@ -186,7 +288,7 @@ class BaseCrawler(ABC):
             url,
             headers=kwargs.get('headers', self.headers),
             timeout=self.timeout,
-            **kwargs
+            **{k: v for k, v in kwargs.items() if k != 'headers'}
         )
         response.raise_for_status()
         
@@ -202,6 +304,53 @@ class BaseCrawler(ABC):
     @abstractmethod
     async def crawl(self, start_url: str, **kwargs) -> List[Document]:
         pass
+
+
+class ConcurrentCrawler(BaseCrawler):
+    
+    def __init__(
+        self,
+        config: Dict[str, Any],
+        session: Optional[aiohttp.ClientSession] = None
+    ):
+        super().__init__(config, session)
+        self._results: List[Document] = []
+        self._results_lock = asyncio.Lock()
+        self._crawl_tasks: Set[asyncio.Task] = set()
+    
+    async def add_result(self, doc: Document):
+        async with self._results_lock:
+            if doc.url not in [d.url for d in self._results]:
+                self._results.append(doc)
+    
+    async def get_results(self) -> List[Document]:
+        async with self._results_lock:
+            return self._results.copy()
+    
+    async def run_concurrent_tasks(
+        self,
+        urls: List[str],
+        worker_func: Callable[[str], Any],
+        max_workers: Optional[int] = None
+    ) -> List[Any]:
+        max_workers = max_workers or self.max_workers
+        semaphore = asyncio.Semaphore(max_workers)
+        
+        async def bounded_worker(url: str) -> Any:
+            async with semaphore:
+                return await worker_func(url)
+        
+        tasks = [bounded_worker(url) for url in urls]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+        
+        valid_results = []
+        for result in results:
+            if isinstance(result, Exception):
+                logger.error(f"Task failed: {result}")
+            else:
+                valid_results.append(result)
+        
+        return valid_results
 
 
 class HtmlParser:
@@ -291,8 +440,8 @@ class LinkExtractor:
             if not any(d in domain for d in self.allowed_domains):
                 return False
         
+        import re
         for pattern in self.excluded_patterns:
-            import re
             if re.search(pattern, url, re.IGNORECASE):
                 return False
         
