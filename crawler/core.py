@@ -14,7 +14,6 @@ from typing import Any, Callable, Dict, List, Optional, Set
 from urllib.parse import urljoin, urlparse
 
 import aiohttp
-import requests
 from bs4 import BeautifulSoup
 from tenacity import retry, stop_after_attempt, wait_exponential
 
@@ -223,10 +222,7 @@ class BaseCrawler(ABC):
             headers = await self._get_headers()
             all_headers = {**headers, **kwargs.get('headers', {})}
             
-            if self.session:
-                response = await self._async_fetch(url, method, headers=all_headers, **kwargs)
-            else:
-                response = self._sync_fetch(url, method, headers=all_headers, **kwargs)
+            response = await self._async_fetch(url, method, headers=all_headers, **kwargs)
             
             await self.mark_visited(url)
             await self.increment_request_count()
@@ -257,49 +253,43 @@ class BaseCrawler(ABC):
         method: str = 'GET',
         **kwargs
     ) -> Dict[str, Any]:
-        if not self.session:
-            raise RuntimeError("Async session not available")
+        headers = kwargs.get('headers', self.headers)
         
-        async with self.session.request(
-            method,
-            url,
-            headers=kwargs.get('headers', self.headers),
-            timeout=aiohttp.ClientTimeout(total=self.timeout),
-            **{k: v for k, v in kwargs.items() if k != 'headers'}
-        ) as response:
-            content = await response.text()
-            return {
-                'content': content,
-                'metadata': {
-                    'status': response.status,
-                    'headers': dict(response.headers),
-                    'url': str(response.url)
+        if self.session:
+            async with self.session.request(
+                method,
+                url,
+                headers=headers,
+                timeout=aiohttp.ClientTimeout(total=self.timeout),
+                **{k: v for k, v in kwargs.items() if k not in ['headers']}
+            ) as response:
+                content = await response.text()
+                return {
+                    'content': content,
+                    'metadata': {
+                        'status': response.status,
+                        'headers': dict(response.headers),
+                        'url': str(response.url)
+                    }
                 }
-            }
-    
-    def _sync_fetch(
-        self,
-        url: str,
-        method: str = 'GET',
-        **kwargs
-    ) -> Dict[str, Any]:
-        response = requests.request(
-            method,
-            url,
-            headers=kwargs.get('headers', self.headers),
-            timeout=self.timeout,
-            **{k: v for k, v in kwargs.items() if k != 'headers'}
-        )
-        response.raise_for_status()
-        
-        return {
-            'content': response.text,
-            'metadata': {
-                'status': response.status_code,
-                'headers': dict(response.headers),
-                'url': response.url
-            }
-        }
+        else:
+            async with aiohttp.ClientSession() as temp_session:
+                async with temp_session.request(
+                    method,
+                    url,
+                    headers=headers,
+                    timeout=aiohttp.ClientTimeout(total=self.timeout),
+                    **{k: v for k, v in kwargs.items() if k not in ['headers']}
+                ) as response:
+                    content = await response.text()
+                    return {
+                        'content': content,
+                        'metadata': {
+                            'status': response.status,
+                            'headers': dict(response.headers),
+                            'url': str(response.url)
+                        }
+                    }
     
     @abstractmethod
     async def crawl(self, start_url: str, **kwargs) -> List[Document]:
@@ -357,7 +347,7 @@ class HtmlParser:
     
     @staticmethod
     def parse(html: str, base_url: str = '') -> BeautifulSoup:
-        return BeautifulSoup(html, 'lxml')
+        return BeautifulSoup(html, 'html.parser')
     
     @staticmethod
     def extract_links(soup: BeautifulSoup, base_url: str) -> List[str]:

@@ -16,7 +16,6 @@ from urllib.parse import urlparse
 
 import aiofiles
 import aiohttp
-import requests
 from bs4 import BeautifulSoup
 
 from core import Document, HtmlParser, RateLimiter, UserAgentRotator
@@ -119,7 +118,7 @@ class StorageManager:
             raise
     
     def _clean_html(self, html: str, base_url: str) -> str:
-        soup = BeautifulSoup(html, 'lxml')
+        soup = BeautifulSoup(html, 'html.parser')
         
         for script in soup.find_all('script'):
             script.decompose()
@@ -213,12 +212,13 @@ class StorageManager:
                             await f.write(content)
                         return True
             else:
-                response = requests.get(url, timeout=60, stream=True)
-                if response.status_code == 200:
-                    with open(save_path, 'wb') as f:
-                        for chunk in response.iter_content(chunk_size=8192):
-                            f.write(chunk)
-                    return True
+                async with aiohttp.ClientSession() as temp_session:
+                    async with temp_session.get(url, timeout=aiohttp.ClientTimeout(total=60)) as response:
+                        if response.status == 200:
+                            content = await response.read()
+                            async with aiofiles.open(save_path, 'wb') as f:
+                                await f.write(content)
+                            return True
             
             return False
             
