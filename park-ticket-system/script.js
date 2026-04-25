@@ -665,12 +665,6 @@ function handleRefund(order) {
         return;
     }
     
-    // 特价票不可退票
-    if (order.ticketType === 'discount') {
-        alert('特价票不可退票');
-        return;
-    }
-    
     // 确认退票
     if (confirm(`确定要申请退票吗？\n\n订单号：${order.id}\n退票金额：¥${order.totalPrice}`)) {
         // 从订单列表中找到该订单的索引
