@@ -1,179 +1,264 @@
 # -*- coding: utf-8 -*-
 """
-云资源池综合化网管系统 - 认证路由
+云资源池综合化网管系统 - 告警管理路由
 """
 
 from datetime import datetime
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import (
-    create_access_token,
-    create_refresh_token,
-    jwt_required,
-    get_jwt_identity,
-    get_jwt
-)
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from sqlalchemy import func
+
 from app import db
-from app.models.user import User, Role
+from app.models.user import User
+from app.models.alarm import Alarm
 
-auth_bp = Blueprint('auth', __name__)
+alarms_bp = Blueprint('alarms', __name__)
 
 
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    """用户登录"""
-    data = request.get_json()
-    
-    if not data or not data.get('username') or not data.get('password'):
-        return jsonify({
-            'error': 'Bad Request',
-            'message': '用户名和密码不能为空'
-        }), 400
-    
-    user = User.query.filter_by(username=data['username']).first()
-    
-    if not user or not user.verify_password(data['password']):
-        return jsonify({
-            'error': 'Unauthorized',
-            'message': '用户名或密码错误'
-        }), 401
-    
-    if user.status != 'active':
+def get_current_user():
+    """获取当前用户"""
+    current_user_id = get_jwt_identity()
+    return User.query.get(current_user_id)
+
+
+def has_permission(permission):
+    """检查权限"""
+    user = get_current_user()
+    if user and user.has_permission(permission):
+        return True
+    return False
+
+
+@alarms_bp.route('/', methods=['GET'])
+@jwt_required()
+def get_alarms():
+    """获取告警列表"""
+    if not has_permission('alarm_query'):
         return jsonify({
             'error': 'Forbidden',
-            'message': '账号已被禁用，请联系管理员'
+            'message': '无权限访问'
         }), 403
     
-    user.last_login_at = datetime.utcnow()
-    db.session.commit()
+    severity = request.args.get('severity', '')
+    status = request.args.get('status', '')
     
-    additional_claims = {
-        'role': user.role.name if user.role else None,
-        'user_id': user.id,
-        'username': user.username
-    }
+    query = Alarm.query
     
-    access_token = create_access_token(
-        identity=user.id,
-        additional_claims=additional_claims
-    )
-    refresh_token = create_refresh_token(identity=user.id)
+    if severity:
+        query = query.filter(Alarm.severity == severity)
+    if status:
+        query = query.filter(Alarm.status == status)
+    
+    alarms = query.order_by(Alarm.created_at.desc()).all()
+    
+    result = []
+    for alarm in alarms:
+        result.append(alarm.to_dict(include_device=True))
     
     return jsonify({
-        'message': '登录成功',
-        'data': {
-            'access_token': access_token,
-            'refresh_token': refresh_token,
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'real_name': user.real_name,
-                'role': {
-                    'id': user.role.id,
-                    'name': user.role.name,
-                    'description': user.role.description
-                } if user.role else None
-            }
-        }
+        'message': '获取成功',
+        'data': result
     }), 200
 
 
-@auth_bp.route('/refresh', methods=['POST'])
-@jwt_required(refresh=True)
-def refresh():
-    """刷新Token"""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-    
-    if not user:
-        return jsonify({
-            'error': 'Unauthorized',
-            'message': '用户不存在'
-        }), 401
-    
-    additional_claims = {
-        'role': user.role.name if user.role else None,
-        'user_id': user.id,
-        'username': user.username
-    }
-    
-    access_token = create_access_token(
-        identity=user.id,
-        additional_claims=additional_claims
-    )
-    
-    return jsonify({
-        'message': 'Token刷新成功',
-        'data': {
-            'access_token': access_token
-        }
-    }), 200
-
-
-@auth_bp.route('/profile', methods=['GET'])
+@alarms_bp.route('/<int:alarm_id>', methods=['GET'])
 @jwt_required()
-def get_profile():
-    """获取当前用户信息"""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
+def get_alarm(alarm_id):
+    """获取单个告警详情"""
+    if not has_permission('alarm_query'):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': '无权限访问'
+        }), 403
     
-    if not user:
+    alarm = Alarm.query.get(alarm_id)
+    
+    if not alarm:
         return jsonify({
             'error': 'Not Found',
-            'message': '用户不存在'
+            'message': '告警不存在'
         }), 404
     
     return jsonify({
         'message': '获取成功',
-        'data': user.to_dict(include_role=True)
+        'data': alarm.to_dict(include_device=True)
     }), 200
 
 
-@auth_bp.route('/profile', methods=['PUT'])
+@alarms_bp.route('/', methods=['POST'])
 @jwt_required()
-def update_profile():
-    """更新当前用户信息"""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
+def create_alarm():
+    """创建告警"""
+    if not has_permission('alarm_modify'):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': '无权限进行此操作'
+        }), 403
     
-    if not user:
+    data = request.get_json()
+    
+    if not data.get('title'):
+        return jsonify({
+            'error': 'Bad Request',
+            'message': '告警标题不能为空'
+        }), 400
+    
+    alarm = Alarm(
+        device_id=data.get('device_id'),
+        alarm_type=data.get('alarm_type', 'other'),
+        severity=data.get('severity', 'info'),
+        title=data['title'],
+        description=data.get('description'),
+        status=data.get('status', 'active')
+    )
+    
+    db.session.add(alarm)
+    db.session.commit()
+    
+    return jsonify({
+        'message': '创建告警成功',
+        'data': alarm.to_dict()
+    }), 201
+
+
+@alarms_bp.route('/<int:alarm_id>', methods=['PUT'])
+@jwt_required()
+def update_alarm(alarm_id):
+    """更新告警"""
+    if not has_permission('alarm_modify'):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': '无权限进行此操作'
+        }), 403
+    
+    alarm = Alarm.query.get(alarm_id)
+    
+    if not alarm:
         return jsonify({
             'error': 'Not Found',
-            'message': '用户不存在'
+            'message': '告警不存在'
         }), 404
     
     data = request.get_json()
     
-    if data.get('email'):
-        existing = User.query.filter_by(email=data['email']).first()
-        if existing and existing.id != user.id:
-            return jsonify({
-                'error': 'Conflict',
-                'message': '邮箱已被使用'
-            }), 409
-        user.email = data['email']
-    
-    if data.get('real_name'):
-        user.real_name = data['real_name']
-    
-    if data.get('phone'):
-        user.phone = data['phone']
-    
-    if data.get('password'):
-        user.password = data['password']
+    if data.get('title'):
+        alarm.title = data['title']
+    if data.get('description'):
+        alarm.description = data['description']
+    if data.get('severity'):
+        alarm.severity = data['severity']
+    if data.get('status'):
+        alarm.status = data['status']
     
     db.session.commit()
     
     return jsonify({
-        'message': '更新成功',
-        'data': user.to_dict(include_role=True)
+        'message': '更新告警成功',
+        'data': alarm.to_dict()
     }), 200
 
 
-@auth_bp.route('/logout', methods=['POST'])
+@alarms_bp.route('/<int:alarm_id>/acknowledge', methods=['POST'])
 @jwt_required()
-def logout():
-    """用户登出"""
+def acknowledge_alarm(alarm_id):
+    """确认告警"""
+    if not has_permission('alarm_modify'):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': '无权限进行此操作'
+        }), 403
+    
+    alarm = Alarm.query.get(alarm_id)
+    
+    if not alarm:
+        return jsonify({
+            'error': 'Not Found',
+            'message': '告警不存在'
+        }), 404
+    
+    current_user = get_current_user()
+    
+    alarm.status = 'acknowledged'
+    alarm.acknowledged_at = datetime.utcnow()
+    if current_user:
+        alarm.acknowledged_by = current_user.id
+    
+    db.session.commit()
+    
     return jsonify({
-        'message': '登出成功'
+        'message': '确认告警成功',
+        'data': alarm.to_dict()
+    }), 200
+
+
+@alarms_bp.route('/<int:alarm_id>/resolve', methods=['POST'])
+@jwt_required()
+def resolve_alarm(alarm_id):
+    """解决告警"""
+    if not has_permission('alarm_modify'):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': '无权限进行此操作'
+        }), 403
+    
+    alarm = Alarm.query.get(alarm_id)
+    
+    if not alarm:
+        return jsonify({
+            'error': 'Not Found',
+            'message': '告警不存在'
+        }), 404
+    
+    data = request.get_json() or {}
+    current_user = get_current_user()
+    
+    alarm.status = 'resolved'
+    alarm.resolved_at = datetime.utcnow()
+    if current_user:
+        alarm.resolved_by = current_user.id
+    if data.get('resolution_notes'):
+        alarm.resolution_notes = data['resolution_notes']
+    
+    db.session.commit()
+    
+    return jsonify({
+        'message': '解决告警成功',
+        'data': alarm.to_dict()
+    }), 200
+
+
+@alarms_bp.route('/stats', methods=['GET'])
+@jwt_required()
+def get_alarm_stats():
+    """获取告警统计"""
+    if not has_permission('alarm_query'):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': '无权限访问'
+        }), 403
+    
+    total = Alarm.query.count()
+    active = Alarm.query.filter_by(status='active').count()
+    acknowledged = Alarm.query.filter_by(status='acknowledged').count()
+    resolved = Alarm.query.filter_by(status='resolved').count()
+    
+    critical = Alarm.query.filter_by(severity='critical').count()
+    warning = Alarm.query.filter_by(severity='warning').count()
+    info = Alarm.query.filter_by(severity='info').count()
+    
+    return jsonify({
+        'message': '获取成功',
+        'data': {
+            'total': total,
+            'by_status': {
+                'active': active,
+                'acknowledged': acknowledged,
+                'resolved': resolved
+            },
+            'by_severity': {
+                'critical': critical,
+                'warning': warning,
+                'info': info
+            }
+        }
     }), 200

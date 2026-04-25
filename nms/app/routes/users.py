@@ -1,121 +1,66 @@
 # -*- coding: utf-8 -*-
 """
-云资源池综合化网管系统 - 认证路由
+云资源池综合化网管系统 - 用户管理路由
 """
 
 from datetime import datetime
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import (
-    create_access_token,
-    create_refresh_token,
-    jwt_required,
-    get_jwt_identity,
-    get_jwt
-)
+from flask_jwt_extended import jwt_required, get_jwt_identity, get_jwt
+from sqlalchemy import func
+
 from app import db
 from app.models.user import User, Role
 
-auth_bp = Blueprint('auth', __name__)
+users_bp = Blueprint('users', __name__)
 
 
-@auth_bp.route('/login', methods=['POST'])
-def login():
-    """用户登录"""
-    data = request.get_json()
-    
-    if not data or not data.get('username') or not data.get('password'):
-        return jsonify({
-            'error': 'Bad Request',
-            'message': '用户名和密码不能为空'
-        }), 400
-    
-    user = User.query.filter_by(username=data['username']).first()
-    
-    if not user or not user.verify_password(data['password']):
-        return jsonify({
-            'error': 'Unauthorized',
-            'message': '用户名或密码错误'
-        }), 401
-    
-    if user.status != 'active':
+def get_current_user():
+    """获取当前用户"""
+    current_user_id = get_jwt_identity()
+    return User.query.get(current_user_id)
+
+
+def has_permission(permission):
+    """检查权限"""
+    user = get_current_user()
+    if user and user.has_permission(permission):
+        return True
+    return False
+
+
+@users_bp.route('/', methods=['GET'])
+@jwt_required()
+def get_users():
+    """获取用户列表"""
+    if not has_permission('user_manage'):
         return jsonify({
             'error': 'Forbidden',
-            'message': '账号已被禁用，请联系管理员'
+            'message': '无权限访问'
         }), 403
     
-    user.last_login_at = datetime.utcnow()
-    db.session.commit()
+    users = User.query.all()
     
-    additional_claims = {
-        'role': user.role.name if user.role else None,
-        'user_id': user.id,
-        'username': user.username
-    }
-    
-    access_token = create_access_token(
-        identity=user.id,
-        additional_claims=additional_claims
-    )
-    refresh_token = create_refresh_token(identity=user.id)
+    result = []
+    for user in users:
+        result.append(user.to_dict(include_role=True))
     
     return jsonify({
-        'message': '登录成功',
-        'data': {
-            'access_token': access_token,
-            'refresh_token': refresh_token,
-            'user': {
-                'id': user.id,
-                'username': user.username,
-                'email': user.email,
-                'real_name': user.real_name,
-                'role': {
-                    'id': user.role.id,
-                    'name': user.role.name,
-                    'description': user.role.description
-                } if user.role else None
-            }
-        }
+        'message': '获取成功',
+        'data': result
     }), 200
 
 
-@auth_bp.route('/refresh', methods=['POST'])
-@jwt_required(refresh=True)
-def refresh():
-    """刷新Token"""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
-    
-    if not user:
-        return jsonify({
-            'error': 'Unauthorized',
-            'message': '用户不存在'
-        }), 401
-    
-    additional_claims = {
-        'role': user.role.name if user.role else None,
-        'user_id': user.id,
-        'username': user.username
-    }
-    
-    access_token = create_access_token(
-        identity=user.id,
-        additional_claims=additional_claims
-    )
-    
-    return jsonify({
-        'message': 'Token刷新成功',
-        'data': {
-            'access_token': access_token
-        }
-    }), 200
-
-
-@auth_bp.route('/profile', methods=['GET'])
+@users_bp.route('/<int:user_id>', methods=['GET'])
 @jwt_required()
-def get_profile():
-    """获取当前用户信息"""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
+def get_user(user_id):
+    """获取单个用户详情"""
+    if not has_permission('user_manage'):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': '无权限访问'
+        }), 403
+    
+    user = User.query.get(user_id)
     
     if not user:
         return jsonify({
@@ -129,12 +74,69 @@ def get_profile():
     }), 200
 
 
-@auth_bp.route('/profile', methods=['PUT'])
+@users_bp.route('/', methods=['POST'])
 @jwt_required()
-def update_profile():
-    """更新当前用户信息"""
-    current_user_id = get_jwt_identity()
-    user = User.query.get(current_user_id)
+def create_user():
+    """创建用户"""
+    if not has_permission('user_manage'):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': '无权限进行此操作'
+        }), 403
+    
+    data = request.get_json()
+    
+    if not data.get('username') or not data.get('password'):
+        return jsonify({
+            'error': 'Bad Request',
+            'message': '用户名和密码不能为空'
+        }), 400
+    
+    existing_user = User.query.filter_by(username=data['username']).first()
+    if existing_user:
+        return jsonify({
+            'error': 'Conflict',
+            'message': '用户名已存在'
+        }), 409
+    
+    if data.get('email'):
+        existing_email = User.query.filter_by(email=data['email']).first()
+        if existing_email:
+            return jsonify({
+                'error': 'Conflict',
+                'message': '邮箱已被使用'
+            }), 409
+    
+    user = User(
+        username=data['username'],
+        email=data.get('email'),
+        real_name=data.get('real_name'),
+        phone=data.get('phone'),
+        status=data.get('status', 'active'),
+        role_id=data.get('role_id')
+    )
+    user.password = data['password']
+    
+    db.session.add(user)
+    db.session.commit()
+    
+    return jsonify({
+        'message': '创建用户成功',
+        'data': user.to_dict(include_role=True)
+    }), 201
+
+
+@users_bp.route('/<int:user_id>', methods=['PUT'])
+@jwt_required()
+def update_user(user_id):
+    """更新用户"""
+    if not has_permission('user_manage'):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': '无权限进行此操作'
+        }), 403
+    
+    user = User.query.get(user_id)
     
     if not user:
         return jsonify({
@@ -144,9 +146,18 @@ def update_profile():
     
     data = request.get_json()
     
-    if data.get('email'):
-        existing = User.query.filter_by(email=data['email']).first()
-        if existing and existing.id != user.id:
+    if data.get('username') and data['username'] != user.username:
+        existing_user = User.query.filter_by(username=data['username']).first()
+        if existing_user:
+            return jsonify({
+                'error': 'Conflict',
+                'message': '用户名已存在'
+            }), 409
+        user.username = data['username']
+    
+    if data.get('email') and data['email'] != user.email:
+        existing_email = User.query.filter_by(email=data['email']).first()
+        if existing_email:
             return jsonify({
                 'error': 'Conflict',
                 'message': '邮箱已被使用'
@@ -155,25 +166,73 @@ def update_profile():
     
     if data.get('real_name'):
         user.real_name = data['real_name']
-    
     if data.get('phone'):
         user.phone = data['phone']
-    
+    if data.get('status'):
+        user.status = data['status']
+    if data.get('role_id'):
+        user.role_id = data['role_id']
     if data.get('password'):
         user.password = data['password']
     
     db.session.commit()
     
     return jsonify({
-        'message': '更新成功',
+        'message': '更新用户成功',
         'data': user.to_dict(include_role=True)
     }), 200
 
 
-@auth_bp.route('/logout', methods=['POST'])
+@users_bp.route('/<int:user_id>', methods=['DELETE'])
 @jwt_required()
-def logout():
-    """用户登出"""
+def delete_user(user_id):
+    """删除用户"""
+    if not has_permission('user_manage'):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': '无权限进行此操作'
+        }), 403
+    
+    current_user = get_current_user()
+    if current_user and current_user.id == user_id:
+        return jsonify({
+            'error': 'Bad Request',
+            'message': '不能删除自己的账号'
+        }), 400
+    
+    user = User.query.get(user_id)
+    
+    if not user:
+        return jsonify({
+            'error': 'Not Found',
+            'message': '用户不存在'
+        }), 404
+    
+    db.session.delete(user)
+    db.session.commit()
+    
     return jsonify({
-        'message': '登出成功'
+        'message': '删除用户成功'
+    }), 200
+
+
+@users_bp.route('/roles', methods=['GET'])
+@jwt_required()
+def get_roles():
+    """获取角色列表"""
+    if not has_permission('user_manage'):
+        return jsonify({
+            'error': 'Forbidden',
+            'message': '无权限访问'
+        }), 403
+    
+    roles = Role.query.all()
+    
+    result = []
+    for role in roles:
+        result.append(role.to_dict())
+    
+    return jsonify({
+        'message': '获取成功',
+        'data': result
     }), 200
