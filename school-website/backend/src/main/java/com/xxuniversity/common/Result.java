@@ -1,16 +1,24 @@
 package com.xxuniversity.common;
 
+import io.swagger.annotations.ApiModel;
+import io.swagger.annotations.ApiModelProperty;
 import lombok.Data;
 
 import java.io.Serializable;
 
 @Data
+@ApiModel(value = "Result", description = "统一响应对象")
 public class Result<T> implements Serializable {
 
     private static final long serialVersionUID = 1L;
 
+    @ApiModelProperty(value = "响应状态码：200-成功，其他-失败", example = "200", position = 1)
     private Integer code;
+
+    @ApiModelProperty(value = "响应消息", example = "操作成功", position = 2)
     private String message;
+
+    @ApiModelProperty(value = "响应数据", position = 3)
     private T data;
 
     public Result() {
