@@ -117,15 +117,19 @@ class ResumeFilter:
         return resume.expected_salary <= self.criteria.max_expected_salary
     
     def matches(self, resume: Resume) -> bool:
-        """检查简历是否符合所有筛选标准"""
-        return all([
-            self._match_age(resume),
-            self._match_education(resume),
-            self._match_certification(resume),
-            self._match_experience(resume),
-            self._match_project_experience(resume),
+        """检查简历是否符合所有筛选标准
+        
+        使用真正的短路求值：只要有一个条件不满足，立即返回False，
+        不再计算后续条件，提高性能。
+        """
+        return (
+            self._match_age(resume) and
+            self._match_education(resume) and
+            self._match_certification(resume) and
+            self._match_experience(resume) and
+            self._match_project_experience(resume) and
             self._match_salary(resume)
-        ])
+        )
 
 
 def load_resumes_from_csv(file_path: str) -> Generator[Resume, None, None]:

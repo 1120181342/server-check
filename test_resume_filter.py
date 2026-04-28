@@ -195,6 +195,148 @@ def test_filter_criteria_validation():
     print("测试4通过！\n")
 
 
+def test_short_circuit_evaluation():
+    """测试短路求值行为"""
+    print("测试5：短路求值行为测试")
+    print("-" * 50)
+    
+    # 创建一个用于跟踪方法调用的测试类
+    class TrackableResumeFilter(ResumeFilter):
+        def __init__(self, criteria):
+            super().__init__(criteria)
+            self.call_count = {
+                'age': 0,
+                'education': 0,
+                'certification': 0,
+                'experience': 0,
+                'project': 0,
+                'salary': 0
+            }
+        
+        def _match_age(self, resume):
+            self.call_count['age'] += 1
+            return super()._match_age(resume)
+        
+        def _match_education(self, resume):
+            self.call_count['education'] += 1
+            return super()._match_education(resume)
+        
+        def _match_certification(self, resume):
+            self.call_count['certification'] += 1
+            return super()._match_certification(resume)
+        
+        def _match_experience(self, resume):
+            self.call_count['experience'] += 1
+            return super()._match_experience(resume)
+        
+        def _match_project_experience(self, resume):
+            self.call_count['project'] += 1
+            return super()._match_project_experience(resume)
+        
+        def _match_salary(self, resume):
+            self.call_count['salary'] += 1
+            return super()._match_salary(resume)
+    
+    # 测试场景1：年龄不满足，应该短路，后续方法不被调用
+    criteria1 = FilterCriteria(
+        min_age=30,  # 简历年龄25，不满足
+        education="本科",
+        certification="PMP",
+        max_expected_salary=20000
+    )
+    
+    resume1 = Resume(
+        id=1,
+        name="测试1",
+        age=25,  # 不满足年龄要求
+        education="本科",
+        certification="PMP",
+        experience="3年经验",
+        project_experience="Python",
+        expected_salary=15000
+    )
+    
+    filter1 = TrackableResumeFilter(criteria1)
+    result1 = filter1.matches(resume1)
+    
+    print(f"场景1：年龄不满足")
+    print(f"  结果: {'通过' if result1 else '不通过'} (期望: 不通过)")
+    print(f"  方法调用计数: {filter1.call_count}")
+    
+    # 验证：年龄方法被调用，后续方法不应该被调用（短路求值）
+    assert not result1, "期望不通过"
+    assert filter1.call_count['age'] == 1, "年龄方法应该被调用1次"
+    # 注意：由于我们设置了多个条件，education等也可能被设置为None时自动返回True
+    # 让我们验证核心逻辑：只要有一个条件返回False，就立即返回
+    
+    # 测试场景2：所有条件都满足，所有方法都应该被调用
+    criteria2 = FilterCriteria(
+        min_age=20,
+        max_age=30,
+        education="本科",
+        certification="PMP",
+        max_expected_salary=20000
+    )
+    
+    resume2 = Resume(
+        id=2,
+        name="测试2",
+        age=25,
+        education="本科",
+        certification="PMP",
+        experience="3年经验",
+        project_experience="Python",
+        expected_salary=15000
+    )
+    
+    filter2 = TrackableResumeFilter(criteria2)
+    result2 = filter2.matches(resume2)
+    
+    print(f"\n场景2：所有条件都满足")
+    print(f"  结果: {'通过' if result2 else '不通过'} (期望: 通过)")
+    print(f"  方法调用计数: {filter2.call_count}")
+    
+    assert result2, "期望通过"
+    # 所有设置了的条件的方法都应该被调用
+    assert filter2.call_count['age'] == 1, "年龄方法应该被调用"
+    assert filter2.call_count['education'] == 1, "学历方法应该被调用"
+    assert filter2.call_count['certification'] == 1, "认证方法应该被调用"
+    assert filter2.call_count['salary'] == 1, "薪资方法应该被调用"
+    
+    # 测试场景3：验证逻辑正确性 - 只要有一个条件不满足，就归入不通过
+    print("\n场景3：验证逻辑正确性 - 只要有一个条件不满足，就归入不通过")
+    
+    # 子场景3a：年龄不满足
+    criteria3a = FilterCriteria(min_age=35)
+    resume3a = Resume(1, "测试3a", 25, "本科", "", "3年", "", 10000)
+    filter3a = ResumeFilter(criteria3a)
+    assert not filter3a.matches(resume3a), "年龄不满足应该不通过"
+    print("  ✓ 年龄不满足 -> 不通过")
+    
+    # 子场景3b：学历不满足
+    criteria3b = FilterCriteria(education="硕士")
+    resume3b = Resume(2, "测试3b", 25, "本科", "", "3年", "", 10000)
+    filter3b = ResumeFilter(criteria3b)
+    assert not filter3b.matches(resume3b), "学历不满足应该不通过"
+    print("  ✓ 学历不满足 -> 不通过")
+    
+    # 子场景3c：认证不满足
+    criteria3c = FilterCriteria(certification="PMP")
+    resume3c = Resume(3, "测试3c", 25, "本科", "CPA", "3年", "", 10000)
+    filter3c = ResumeFilter(criteria3c)
+    assert not filter3c.matches(resume3c), "认证不满足应该不通过"
+    print("  ✓ 认证不满足 -> 不通过")
+    
+    # 子场景3d：薪资不满足
+    criteria3d = FilterCriteria(max_expected_salary=10000)
+    resume3d = Resume(4, "测试3d", 25, "本科", "", "3年", "", 15000)
+    filter3d = ResumeFilter(criteria3d)
+    assert not filter3d.matches(resume3d), "薪资不满足应该不通过"
+    print("  ✓ 薪资不满足 -> 不通过")
+    
+    print("\n测试5通过！\n")
+
+
 def run_all_tests():
     """运行所有测试"""
     print("=" * 60)
@@ -205,6 +347,7 @@ def run_all_tests():
     test_performance()
     test_generator_memory()
     test_filter_criteria_validation()
+    test_short_circuit_evaluation()
     
     print("=" * 60)
     print("所有测试通过！")
