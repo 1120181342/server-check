@@ -10,9 +10,9 @@ import sys
 import argparse
 import json
 import csv
+import time
 from dataclasses import dataclass
-from typing import List, Dict, Any, Generator, Tuple
-from datetime import datetime
+from typing import List, Generator, Tuple
 
 
 @dataclass
@@ -354,7 +354,7 @@ def main():
     filter_obj = ResumeFilter(criteria)
     
     # 加载简历数据
-    start_time = datetime.now()
+    start_time = time.time()
     
     if args.sample > 0:
         print(f"\n生成 {args.sample} 份示例数据...")
@@ -390,8 +390,8 @@ def main():
         passed, failed = filter_resumes(resumes, filter_obj)
         print_results(passed, failed)
     
-    end_time = datetime.now()
-    elapsed = (end_time - start_time).total_seconds()
+    end_time = time.time()
+    elapsed = end_time - start_time
     print(f"\n筛选耗时：{elapsed:.3f} 秒")
     print(f"性能：{100 if args.sample == 0 else args.sample} 份简历筛选完成，远低于1分钟要求")
 
