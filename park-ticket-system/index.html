@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公园票务系统</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部导航栏 -->
+        <header class="top-nav">
+            <h1 class="app-title">公园票务系统</h1>
+        </header>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 时间预约页面 -->
+            <section id="booking" class="page active">
+                <div class="page-header">
+                    <h2>时间预约</h2>
+                    <span class="subtitle">选择您想要预约的日期和时间</span>
+                </div>
+                
+                <div class="booking-container">
+                    <div class="booking-section">
+                        <h3 class="section-title">选择日期</h3>
+                        <div class="date-picker">
+                            <div class="date-header">
+                                <button class="date-nav" id="prevMonth">‹</button>
+                                <span class="current-month" id="currentMonth">2026年4月</span>
+                                <button class="date-nav" id="nextMonth">›</button>
+                            </div>
+                            <div class="date-days">
+                                <span class="day-header">日</span>
+                                <span class="day-header">一</span>
+                                <span class="day-header">二</span>
+                                <span class="day-header">三</span>
+                                <span class="day-header">四</span>
+                                <span class="day-header">五</span>
+                                <span class="day-header">六</span>
+                            </div>
+                            <div class="date-grid" id="dateGrid">
+                                <!-- 日期将通过JavaScript动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="booking-section" id="timeSection" style="display: none;">
+                        <h3 class="section-title">选择时间段</h3>
+                        <div class="time-slots" id="timeSlots">
+                            <!-- 时间段将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+
+                    <div class="booking-summary" id="bookingSummary" style="display: none;">
+                        <div class="summary-header">
+                            <h3>预约信息</h3>
+                        </div>
+                        <div class="summary-content">
+                            <div class="summary-item">
+                                <span class="summary-label">预约日期</span>
+                                <span class="summary-value" id="summaryDate">--</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">预约时间</span>
+                                <span class="summary-value" id="summaryTime">--</span>
+                            </div>
+                            <div class="summary-item">
+                                <span class="summary-label">预约人数</span>
+                                <div class="people-selector">
+                                    <button class="people-btn" id="decreasePeople">-</button>
+                                    <span class="people-count" id="peopleCount">1</span>
+                                    <button class="people-btn" id="increasePeople">+</button>
+                                </div>
+                            </div>
+                        </div>
+                        <button class="primary-btn" id="goToPurchase">前往购票</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 购票链接页面 -->
+            <section id="purchase" class="page">
+                <div class="page-header">
+                    <h2>购票链接</h2>
+                    <span class="subtitle">选择您想要购买的门票类型</span>
+                </div>
+                
+                <div class="ticket-container">
+                    <!-- 原价票 -->
+                    <div class="ticket-card">
+                        <div class="ticket-header standard">
+                            <h3>原价票</h3>
+                            <span class="ticket-badge">标准票</span>
+                        </div>
+                        <div class="ticket-price">
+                            <span class="price-symbol">¥</span>
+                            <span class="price-value">100</span>
+                            <span class="price-unit">/人</span>
+                        </div>
+                        <div class="ticket-features">
+                            <div class="feature-item">
+                                <span class="feature-icon">✓</span>
+                                <span>全天不限时入园</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">✓</span>
+                                <span>所有景点通行</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">✓</span>
+                                <span>免费停车2小时</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">✓</span>
+                                <span>可退票（需提前24小时）</span>
+                            </div>
+                        </div>
+                        <button class="purchase-btn" data-ticket-type="standard">立即购买</button>
+                    </div>
+
+                    <!-- 特价票 -->
+                    <div class="ticket-card">
+                        <div class="ticket-header discount">
+                            <h3>特价票</h3>
+                            <span class="ticket-badge">限时特惠</span>
+                            <span class="discount-label">立减¥30</span>
+                        </div>
+                        <div class="ticket-price">
+                            <span class="original-price">¥100</span>
+                            <span class="price-symbol">¥</span>
+                            <span class="price-value">70</span>
+                            <span class="price-unit">/人</span>
+                        </div>
+                        <div class="ticket-features">
+                            <div class="feature-item">
+                                <span class="feature-icon">✓</span>
+                                <span>全天不限时入园</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">✓</span>
+                                <span>所有景点通行</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">✓</span>
+                                <span>免费停车2小时</span>
+                            </div>
+                            <div class="feature-item">
+                                <span class="feature-icon">✓</span>
+                                <span>可退票</span>
+                            </div>
+                        </div>
+                        <button class="purchase-btn" data-ticket-type="discount">立即购买</button>
+                    </div>
+
+                    <!-- 购票确认弹窗 -->
+                    <div class="modal" id="purchaseModal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3>确认购票</h3>
+                                <button class="modal-close" id="closeModal">×</button>
+                            </div>
+                            <div class="modal-body">
+                                <div class="ticket-info">
+                                    <span class="ticket-type-label" id="modalTicketType">原价票</span>
+                                    <span class="ticket-price-label" id="modalTicketPrice">¥100/人</span>
+                                </div>
+                                <div class="purchase-details">
+                                    <div class="detail-item">
+                                        <span class="detail-label">购买数量</span>
+                                        <div class="quantity-selector">
+                                            <button class="qty-btn" id="decreaseQty">-</button>
+                                            <span class="qty-value" id="ticketQuantity">1</span>
+                                            <button class="qty-btn" id="increaseQty">+</button>
+                                        </div>
+                                    </div>
+                                    <div class="detail-item">
+                                        <span class="detail-label">使用日期</span>
+                                        <span class="detail-value" id="modalUseDate">请选择</span>
+                                    </div>
+                                    <div class="detail-item total">
+                                        <span class="detail-label">应付金额</span>
+                                        <span class="detail-value total-price" id="modalTotalPrice">¥100</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="modal-footer">
+                                <button class="secondary-btn" id="cancelPurchase">取消</button>
+                                <button class="primary-btn" id="confirmPurchase">微信支付</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 个人订单页面 -->
+            <section id="orders" class="page">
+                <div class="page-header">
+                    <h2>个人订单</h2>
+                    <span class="subtitle">查看和管理您的所有订单</span>
+                </div>
+                
+                <div class="orders-container">
+                    <!-- 订单状态标签 -->
+                    <div class="order-tabs">
+                        <button class="order-tab active" data-status="unused">未使用</button>
+                        <button class="order-tab" data-status="used">已使用</button>
+                        <button class="order-tab" data-status="refunded">已退票</button>
+                    </div>
+
+                    <!-- 订单列表 -->
+                    <div class="orders-list" id="ordersList">
+                        <!-- 订单将通过JavaScript动态生成 -->
+                    </div>
+
+                    <!-- 订单详情弹窗 -->
+                    <div class="modal" id="orderDetailModal">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <h3>订单详情</h3>
+                                <button class="modal-close" id="closeOrderModal">×</button>
+                            </div>
+                            <div class="modal-body" id="orderDetailBody">
+                                <!-- 订单详情将通过JavaScript动态生成 -->
+                            </div>
+                            <div class="modal-footer" id="orderDetailActions">
+                                <!-- 操作按钮将通过JavaScript动态生成 -->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 个人信息页面 -->
+            <section id="profile" class="page">
+                <div class="page-header">
+                    <h2>个人信息</h2>
+                    <span class="subtitle">查看和管理您的个人信息</span>
+                </div>
+                
+                <div class="profile-container">
+                    <!-- 用户头像和基本信息 -->
+                    <div class="profile-card">
+                        <div class="profile-avatar">
+                            <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=卡通%20风格%20用户%20头像%2C%20简约%20清新%2C%20圆形&image_size=square" alt="用户头像">
+                            <div class="avatar-edit">
+                                <span>更换头像</span>
+                            </div>
+                        </div>
+                        <div class="profile-info">
+                            <h3 class="username">张三</h3>
+                            <p class="user-phone">138****8888</p>
+                            <div class="user-stats">
+                                <div class="stat-item">
+                                    <span class="stat-value">12</span>
+                                    <span class="stat-label">订单数</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value">3580</span>
+                                    <span class="stat-label">积分</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-value">2</span>
+                                    <span class="stat-label">优惠券</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 个人详细信息 -->
+                    <div class="info-section">
+                        <h3 class="section-title">基本信息</h3>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="info-label">真实姓名</span>
+                                <span class="info-value">张三</span>
+                                <span class="info-edit">编辑</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">身份证号</span>
+                                <span class="info-value">110************123</span>
+                                <span class="info-edit">编辑</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">手机号码</span>
+                                <span class="info-value">138****8888</span>
+                                <span class="info-edit">编辑</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">电子邮箱</span>
+                                <span class="info-value">zhangsan@example.com</span>
+                                <span class="info-edit">编辑</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 联系信息 -->
+                    <div class="info-section">
+                        <h3 class="section-title">联系信息</h3>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="info-label">联系地址</span>
+                                <span class="info-value">北京市朝阳区建国路88号</span>
+                                <span class="info-edit">编辑</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">紧急联系人</span>
+                                <span class="info-value">李四</span>
+                                <span class="info-edit">编辑</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">紧急联系电话</span>
+                                <span class="info-value">139****9999</span>
+                                <span class="info-edit">编辑</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 账户设置 -->
+                    <div class="info-section">
+                        <h3 class="section-title">账户设置</h3>
+                        <div class="info-list">
+                            <div class="info-item">
+                                <span class="info-label">修改密码</span>
+                                <span class="info-arrow">›</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">消息通知</span>
+                                <span class="info-arrow">›</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">隐私设置</span>
+                                <span class="info-arrow">›</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">关于我们</span>
+                                <span class="info-arrow">›</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 退出登录 -->
+                    <button class="logout-btn">退出登录</button>
+                </div>
+            </section>
+        </main>
+
+        <!-- 底部导航栏 -->
+        <nav class="bottom-nav">
+            <div class="nav-item active" data-page="booking">
+                <div class="nav-icon">📅</div>
+                <span class="nav-label">时间预约</span>
+            </div>
+            <div class="nav-item" data-page="purchase">
+                <div class="nav-icon">🎫</div>
+                <span class="nav-label">购票链接</span>
+            </div>
+            <div class="nav-item" data-page="orders">
+                <div class="nav-icon">📋</div>
+                <span class="nav-label">个人订单</span>
+            </div>
+            <div class="nav-item" data-page="profile">
+                <div class="nav-icon">👤</div>
+                <span class="nav-label">个人信息</span>
+            </div>
+        </nav>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
