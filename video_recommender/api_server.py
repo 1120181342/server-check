@@ -10,7 +10,6 @@ from datetime import datetime
 from typing import Dict, Any, Optional
 
 from flask import Flask, request, jsonify, make_response, send_from_directory
-from flask_cors import CORS
 from werkzeug.exceptions import BadRequest, NotFound, InternalServerError
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +23,32 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, 'static')
 
 app = Flask(__name__, static_folder=STATIC_DIR, static_url_path='/static')
-CORS(app, supports_credentials=True)
+
+CORS_ALLOW_ORIGIN = '*'
+CORS_ALLOW_METHODS = 'GET, POST, PUT, DELETE, OPTIONS, PATCH'
+CORS_ALLOW_HEADERS = 'Origin, Content-Type, Accept, Authorization, X-Requested-With'
+CORS_EXPOSE_HEADERS = 'Content-Length, Content-Type, X-Total-Count'
+CORS_MAX_AGE = '86400'
+
+@app.after_request
+def add_cors_headers(response):
+    response.headers['Access-Control-Allow-Origin'] = CORS_ALLOW_ORIGIN
+    response.headers['Access-Control-Allow-Methods'] = CORS_ALLOW_METHODS
+    response.headers['Access-Control-Allow-Headers'] = CORS_ALLOW_HEADERS
+    response.headers['Access-Control-Expose-Headers'] = CORS_EXPOSE_HEADERS
+    response.headers['Access-Control-Max-Age'] = CORS_MAX_AGE
+    return response
+
+@app.before_request
+def handle_options_preflight():
+    if request.method == 'OPTIONS':
+        response = make_response()
+        response.headers['Access-Control-Allow-Origin'] = CORS_ALLOW_ORIGIN
+        response.headers['Access-Control-Allow-Methods'] = CORS_ALLOW_METHODS
+        response.headers['Access-Control-Allow-Headers'] = CORS_ALLOW_HEADERS
+        response.headers['Access-Control-Max-Age'] = CORS_MAX_AGE
+        response.status_code = 204
+        return response
 
 app.config['JSON_AS_ASCII'] = False
 app.config['JSON_SORT_KEYS'] = False

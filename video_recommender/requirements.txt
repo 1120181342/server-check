@@ -12,7 +12,8 @@ python>=3.8
 
 # Web API 接口依赖
 flask>=2.0.0
-flask-cors>=3.0.0
+# CORS 已通过 Flask after_request 钩子手动实现，无需 flask-cors
+# flask-cors>=3.0.0
 # fastapi>=0.70.0
 
 # 测试依赖
