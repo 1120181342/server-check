@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>拍卖竞标系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .container {
+            text-align: center;
+            background: rgba(255, 255, 255, 0.95);
+            padding: 60px 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 90%;
+        }
+        
+        .logo {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+        
+        h1 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 32px;
+        }
+        
+        .subtitle {
+            color: #666;
+            margin-bottom: 40px;
+            font-size: 16px;
+        }
+        
+        .buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        
+        .btn {
+            padding: 18px 40px;
+            font-size: 18px;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-block;
+            font-weight: 600;
+        }
+        
+        .btn-host {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .btn-host:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn-bidder {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+        
+        .btn-bidder:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 30px rgba(245, 87, 108, 0.4);
+        }
+        
+        .info {
+            margin-top: 40px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            text-align: left;
+        }
+        
+        .info h3 {
+            color: #333;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        
+        .info ul {
+            list-style: none;
+        }
+        
+        .info li {
+            margin: 10px 0;
+            color: #666;
+            padding-left: 25px;
+            position: relative;
+        }
+        
+        .info li::before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #667eea;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">🏷️</div>
+        <h1>拍卖竞标系统</h1>
+        <p class="subtitle">高性能实时拍卖平台，支持20+用户并发</p>
+        
+        <div class="buttons">
+            <a href="/host" class="btn btn-host">🎤 主持人入口</a>
+            <a href="/bidder" class="btn btn-bidder">💰 竞标者入口</a>
+        </div>
+        
+        <div class="info">
+            <h3>系统功能</h3>
+            <ul>
+                <li>支持主持人设置拍卖品和起拍价</li>
+                <li>竞标者按序号顺序依次出价</li>
+                <li>每位竞标者有5秒出价时间</li>
+                <li>超时未出价视为放弃</li>
+                <li>循环出价直到无人竞价</li>
+                <li>高性能实时通信</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
