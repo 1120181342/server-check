@@ -10,8 +10,9 @@ python>=3.8
 # numpy>=1.20.0
 # pandas>=1.3.0
 
-# 可选：如果需要Web API接口
-# flask>=2.0.0
+# Web API 接口依赖
+flask>=2.0.0
+flask-cors>=3.0.0
 # fastapi>=0.70.0
 
 # 测试依赖
