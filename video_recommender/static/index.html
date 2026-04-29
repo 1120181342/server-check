@@ -1,0 +1,1020 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>视频推荐系统 - API测试界面</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+        
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+        
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+        
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+        }
+        
+        @media (max-width: 768px) {
+            .main-content {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        .card {
+            background: white;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.1);
+            overflow: hidden;
+        }
+        
+        .card-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+        }
+        
+        .card-header h2 {
+            font-size: 1.3rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+        
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 1rem;
+            transition: border-color 0.3s;
+        }
+        
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        
+        .form-group textarea {
+            min-height: 100px;
+            resize: vertical;
+        }
+        
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: 600;
+            color: white;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .btn-secondary {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        
+        .status-info {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 15px;
+            margin-bottom: 20px;
+        }
+        
+        .status-info p {
+            margin: 5px 0;
+            color: #555;
+        }
+        
+        .status-info strong {
+            color: #667eea;
+        }
+        
+        .video-list {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .video-card {
+            background: #f8f9fa;
+            border-radius: 12px;
+            padding: 15px;
+            border: 2px solid transparent;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        
+        .video-card:hover {
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+        
+        .video-card.selected {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1) 0%, rgba(118, 75, 162, 0.1) 100%);
+            border-color: #667eea;
+        }
+        
+        .video-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 10px;
+        }
+        
+        .video-index {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 30px;
+            height: 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 50%;
+            font-weight: bold;
+            font-size: 0.9rem;
+        }
+        
+        .video-title {
+            font-weight: 600;
+            color: #333;
+            flex: 1;
+            margin-left: 12px;
+        }
+        
+        .video-score {
+            font-size: 0.85rem;
+            color: #667eea;
+            font-weight: 600;
+            background: rgba(102, 126, 234, 0.1);
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+        
+        .video-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-bottom: 10px;
+            font-size: 0.9rem;
+            color: #666;
+        }
+        
+        .video-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+        }
+        
+        .video-tags {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            background: #e9ecef;
+            color: #495057;
+            border-radius: 20px;
+            font-size: 0.8rem;
+        }
+        
+        .category-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 500;
+        }
+        
+        .api-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+        
+        .api-section h3 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        .api-endpoint {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+        
+        .api-method {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 4px;
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: white;
+        }
+        
+        .method-get {
+            background: #61affe;
+        }
+        
+        .method-post {
+            background: #49cc90;
+        }
+        
+        .method-delete {
+            background: #f93e3e;
+        }
+        
+        .api-path {
+            font-family: 'Courier New', monospace;
+            color: #333;
+            flex: 1;
+        }
+        
+        .response-area {
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 15px;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            font-size: 0.85rem;
+            white-space: pre-wrap;
+            word-break: break-all;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        
+        .profile-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-top: 15px;
+        }
+        
+        .profile-card {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 8px;
+        }
+        
+        .profile-card h4 {
+            margin-bottom: 10px;
+            color: #667eea;
+        }
+        
+        .tag-cloud {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        
+        .empty-state {
+            text-align: center;
+            padding: 40px;
+            color: #999;
+        }
+        
+        .empty-state svg {
+            width: 64px;
+            height: 64px;
+            margin-bottom: 15px;
+            opacity: 0.5;
+        }
+        
+        .tabs {
+            display: flex;
+            border-bottom: 2px solid #e0e0e0;
+            margin-bottom: 20px;
+        }
+        
+        .tab {
+            padding: 12px 24px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            margin-bottom: -2px;
+            color: #666;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+        
+        .tab:hover {
+            color: #667eea;
+        }
+        
+        .tab.active {
+            color: #667eea;
+            border-bottom-color: #667eea;
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+        
+        .loading.show {
+            display: block;
+        }
+        
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 8px;
+            color: white;
+            font-weight: 500;
+            z-index: 1000;
+            animation: slideIn 0.3s ease;
+        }
+        
+        .notification.success {
+            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+        }
+        
+        .notification.error {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+        }
+        
+        @keyframes slideIn {
+            from {
+                transform: translateX(100%);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎬 视频推荐系统</h1>
+            <p>基于内容的多轮视频推荐 - API测试界面</p>
+        </div>
+        
+        <div class="main-content">
+            <!-- 左侧：推荐界面 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>🎯 推荐系统</h2>
+                </div>
+                <div class="card-body">
+                    <div class="tabs">
+                        <div class="tab active" data-tab="recommend">推荐流程</div>
+                        <div class="tab" data-tab="videos">视频列表</div>
+                        <div class="tab" data-tab="profile">用户画像</div>
+                    </div>
+                    
+                    <!-- 推荐流程 Tab -->
+                    <div class="tab-content active" id="tab-recommend">
+                        <div class="status-info">
+                            <p><strong>用户ID:</strong> <span id="current-user">未设置</span></p>
+                            <p><strong>当前轮次:</strong> <span id="current-round">0</span></p>
+                            <p><strong>已选视频数:</strong> <span id="liked-count">0</span></p>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label for="user-id">用户ID (留空自动生成)</label>
+                            <input type="text" id="user-id" placeholder="输入用户ID或留空">
+                        </div>
+                        
+                        <div class="form-group" id="preference-group">
+                            <label for="preference">视频偏好描述</label>
+                            <textarea id="preference" placeholder="描述您喜欢的视频类型，例如：我喜欢看人工智能和编程相关的视频..."></textarea>
+                        </div>
+                        
+                        <div class="btn-group">
+                            <button class="btn" id="btn-start">🚀 开始推荐</button>
+                            <button class="btn btn-secondary" id="btn-reset">🔄 重置会话</button>
+                        </div>
+                        
+                        <div class="loading" id="loading">
+                            <div class="spinner"></div>
+                            <p>正在处理请求...</p>
+                        </div>
+                        
+                        <div id="recommendations-container" style="margin-top: 20px;">
+                            <div class="empty-state" id="empty-state">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                    <path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 11.75a29 29 0 0 0 .46 5.33A2.78 2.78 0 0 0 3.4 19c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2 29 29 0 0 0 .46-5.25 29 29 0 0 0-.46-5.33z"></path>
+                                    <polygon points="9.75 15.02 15.5 11.75 9.75 8.48 9.75 15.02"></polygon>
+                                </svg>
+                                <p>开始推荐后，视频将显示在这里</p>
+                            </div>
+                            <div class="video-list" id="video-list" style="display: none;"></div>
+                        </div>
+                        
+                        <div class="btn-group" id="selection-actions" style="margin-top: 20px; display: none;">
+                            <button class="btn btn-success" id="btn-confirm-selection">✅ 确认选择并继续</button>
+                        </div>
+                    </div>
+                    
+                    <!-- 视频列表 Tab -->
+                    <div class="tab-content" id="tab-videos">
+                        <div class="form-group">
+                            <label for="search-query">搜索视频</label>
+                            <input type="text" id="search-query" placeholder="输入关键词搜索...">
+                        </div>
+                        
+                        <div class="btn-group">
+                            <button class="btn" id="btn-search">🔍 搜索</button>
+                            <button class="btn btn-secondary" id="btn-popular">🔥 热门视频</button>
+                        </div>
+                        
+                        <div class="video-list" id="search-results" style="margin-top: 20px;">
+                            <div class="empty-state">
+                                <p>输入关键词搜索或查看热门视频</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 用户画像 Tab -->
+                    <div class="tab-content" id="tab-profile">
+                        <div id="profile-content">
+                            <div class="empty-state">
+                                <p>进行推荐后，用户画像将显示在这里</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 右侧：API文档和响应 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>📡 API 文档 & 响应</h2>
+                </div>
+                <div class="card-body">
+                    <div class="tabs">
+                        <div class="tab active" data-tab-right="endpoints">API端点</div>
+                        <div class="tab" data-tab-right="response">响应预览</div>
+                    </div>
+                    
+                    <!-- API端点 Tab -->
+                    <div class="tab-content active" id="tab-endpoints">
+                        <div class="api-section">
+                            <h3>会话管理</h3>
+                            <div class="api-endpoint">
+                                <span class="api-method method-post">POST</span>
+                                <span class="api-path">/api/session/create</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/session/{user_id}</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-delete">DELETE</span>
+                                <span class="api-path">/api/session/{user_id}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="api-section">
+                            <h3>推荐系统</h3>
+                            <div class="api-endpoint">
+                                <span class="api-method method-post">POST</span>
+                                <span class="api-path">/api/recommend/first</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-post">POST</span>
+                                <span class="api-path">/api/recommend/select</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-post">POST</span>
+                                <span class="api-path">/api/recommend/next</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-post">POST</span>
+                                <span class="api-path">/api/recommend</span>
+                            </div>
+                        </div>
+                        
+                        <div class="api-section">
+                            <h3>视频管理</h3>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/videos</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/videos/{video_id}</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/videos/search?q={query}</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/videos/popular</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/videos/similar/{video_id}</span>
+                            </div>
+                        </div>
+                        
+                        <div class="api-section">
+                            <h3>用户信息</h3>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/user/{user_id}/profile</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/user/{user_id}/liked</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/user/{user_id}/history</span>
+                            </div>
+                        </div>
+                        
+                        <div class="api-section">
+                            <h3>元数据</h3>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/categories</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/tags</span>
+                            </div>
+                            <div class="api-endpoint">
+                                <span class="api-method method-get">GET</span>
+                                <span class="api-path">/api/health</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 响应预览 Tab -->
+                    <div class="tab-content" id="tab-response">
+                        <div class="response-area" id="response-area">// API响应将显示在这里</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        const API_BASE = 'http://localhost:5000/api';
+        
+        let currentUserId = null;
+        let selectedIndices = new Set();
+        let currentRecommendations = [];
+        
+        // Tab切换
+        document.querySelectorAll('.tab[data-tab]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab[data-tab]').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content#tab-recommend, .tab-content#tab-videos, .tab-content#tab-profile').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById('tab-' + tab.dataset.tab).classList.add('active');
+            });
+        });
+        
+        document.querySelectorAll('.tab[data-tab-right]').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.tab[data-tab-right]').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content#tab-endpoints, .tab-content#tab-response').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                document.getElementById('tab-' + tab.dataset.tabRight).classList.add('active');
+            });
+        });
+        
+        // 显示通知
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = `notification ${type}`;
+            notification.textContent = message;
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+        
+        // 显示/隐藏加载
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            if (show) {
+                loading.classList.add('show');
+            } else {
+                loading.classList.remove('show');
+            }
+        }
+        
+        // 显示响应
+        function showResponse(data) {
+            document.getElementById('response-area').textContent = JSON.stringify(data, null, 2);
+            document.querySelector('.tab[data-tab-right="response"]').click();
+        }
+        
+        // 更新状态信息
+        function updateStatusInfo(userId, round, likedCount) {
+            document.getElementById('current-user').textContent = userId || '未设置';
+            document.getElementById('current-round').textContent = round || 0;
+            document.getElementById('liked-count').textContent = likedCount || 0;
+        }
+        
+        // 渲染视频列表
+        function renderVideoList(videos, containerId, selectable = false) {
+            const container = document.getElementById(containerId);
+            container.innerHTML = '';
+            
+            if (videos.length === 0) {
+                container.innerHTML = '<div class="empty-state"><p>暂无视频</p></div>';
+                return;
+            }
+            
+            videos.forEach((video, index) => {
+                const card = document.createElement('div');
+                card.className = 'video-card' + (selectable && selectedIndices.has(video.index) ? ' selected' : '');
+                card.dataset.index = video.index;
+                
+                card.innerHTML = `
+                    <div class="video-card-header">
+                        <span class="video-index">${video.index}</span>
+                        <span class="video-title">${video.title}</span>
+                        <span class="video-score">相关度: ${video.relevance_score}</span>
+                    </div>
+                    <div class="video-meta">
+                        <span>📂 ${video.category}</span>
+                        <span>⏱️ ${video.duration_formatted}</span>
+                        <span>👁️ ${video.views}</span>
+                        <span>❤️ ${video.likes}</span>
+                    </div>
+                    <p style="color: #666; font-size: 0.9rem; margin-bottom: 10px;">${video.description}</p>
+                    <div class="video-tags">
+                        ${video.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                    </div>
+                `;
+                
+                if (selectable) {
+                    card.addEventListener('click', () => {
+                        const index = video.index;
+                        if (selectedIndices.has(index)) {
+                            selectedIndices.delete(index);
+                            card.classList.remove('selected');
+                        } else {
+                            selectedIndices.add(index);
+                            card.classList.add('selected');
+                        }
+                        updateSelectionButton();
+                    });
+                }
+                
+                container.appendChild(card);
+            });
+            
+            container.style.display = 'flex';
+        }
+        
+        // 更新选择按钮状态
+        function updateSelectionButton() {
+            const actions = document.getElementById('selection-actions');
+            if (selectedIndices.size > 0) {
+                actions.style.display = 'flex';
+            } else {
+                actions.style.display = 'none';
+            }
+        }
+        
+        // 渲染用户画像
+        function renderUserProfile(profile) {
+            const container = document.getElementById('profile-content');
+            
+            if (!profile || profile.total_liked === 0) {
+                container.innerHTML = '<div class="empty-state"><p>进行推荐后，用户画像将显示在这里</p></div>';
+                return;
+            }
+            
+            container.innerHTML = `
+                <div class="status-info">
+                    <p><strong>已喜欢视频数:</strong> ${profile.total_liked}</p>
+                    <p><strong>最喜欢的分类:</strong> ${profile.favorite_category || '暂无'}</p>
+                </div>
+                
+                <div class="profile-section">
+                    <div class="profile-card">
+                        <h4>📂 热门分类</h4>
+                        <div class="tag-cloud">
+                            ${profile.top_categories.map(cat => `
+                                <span class="tag" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white;">
+                                    ${cat.category} (${cat.count})
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                    
+                    <div class="profile-card">
+                        <h4>🏷️ 热门标签</h4>
+                        <div class="tag-cloud">
+                            ${profile.top_tags.map(tag => `
+                                <span class="tag" style="background: #e9ecef;">
+                                    ${tag.tag} (${tag.count})
+                                </span>
+                            `).join('')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // API请求
+        async function apiRequest(endpoint, method = 'GET', data = null) {
+            const options = {
+                method,
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            };
+            
+            if (data && method !== 'GET') {
+                options.body = JSON.stringify(data);
+            }
+            
+            try {
+                const response = await fetch(API_BASE + endpoint, options);
+                const result = await response.json();
+                showResponse(result);
+                return result;
+            } catch (error) {
+                const errorResult = {
+                    success: false,
+                    message: '请求失败: ' + error.message
+                };
+                showResponse(errorResult);
+                return errorResult;
+            }
+        }
+        
+        // 开始推荐
+        document.getElementById('btn-start').addEventListener('click', async () => {
+            const userIdInput = document.getElementById('user-id').value.trim();
+            const preference = document.getElementById('preference').value.trim();
+            
+            if (!currentUserId) {
+                currentUserId = userIdInput || 'user_' + Date.now();
+            }
+            
+            if (currentRecommendations.length === 0) {
+                // 第一轮推荐
+                if (!preference) {
+                    showNotification('请输入视频偏好描述', 'error');
+                    return;
+                }
+                
+                showLoading(true);
+                const result = await apiRequest('/recommend/first', 'POST', {
+                    user_id: currentUserId,
+                    preference: preference
+                });
+                showLoading(false);
+                
+                if (result.success) {
+                    currentRecommendations = result.data.recommendations;
+                    selectedIndices.clear();
+                    
+                    document.getElementById('empty-state').style.display = 'none';
+                    renderVideoList(currentRecommendations, 'video-list', true);
+                    updateStatusInfo(result.data.user_id, result.data.round, 0);
+                    document.getElementById('preference-group').style.display = 'none';
+                    
+                    showNotification('第一轮推荐已生成，请选择您喜欢的视频');
+                } else {
+                    showNotification(result.message, 'error');
+                }
+            }
+        });
+        
+        // 确认选择并继续
+        document.getElementById('btn-confirm-selection').addEventListener('click', async () => {
+            if (selectedIndices.size === 0) {
+                showNotification('请至少选择1个视频', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            
+            // 提交选择
+            const selectResult = await apiRequest('/recommend/select', 'POST', {
+                user_id: currentUserId,
+                selected_indices: Array.from(selectedIndices)
+            });
+            
+            if (!selectResult.success) {
+                showLoading(false);
+                showNotification(selectResult.message, 'error');
+                return;
+            }
+            
+            // 获取下一轮推荐
+            const nextResult = await apiRequest('/recommend/next', 'POST', {
+                user_id: currentUserId
+            });
+            
+            showLoading(false);
+            
+            if (nextResult.success) {
+                currentRecommendations = nextResult.data.recommendations;
+                selectedIndices.clear();
+                
+                renderVideoList(currentRecommendations, 'video-list', true);
+                updateStatusInfo(nextResult.data.user_id, nextResult.data.round, selectResult.data.total_liked_count);
+                renderUserProfile(nextResult.data.user_profile);
+                
+                showNotification(`第 ${nextResult.data.round} 轮推荐已生成`);
+            } else {
+                showNotification(nextResult.message, 'error');
+            }
+        });
+        
+        // 重置会话
+        document.getElementById('btn-reset').addEventListener('click', async () => {
+            if (!currentUserId) {
+                showNotification('没有活跃的会话', 'error');
+                return;
+            }
+            
+            const result = await apiRequest('/session/' + currentUserId, 'DELETE');
+            
+            if (result.success) {
+                currentUserId = null;
+                currentRecommendations = [];
+                selectedIndices.clear();
+                
+                document.getElementById('video-list').style.display = 'none';
+                document.getElementById('empty-state').style.display = 'block';
+                document.getElementById('selection-actions').style.display = 'none';
+                document.getElementById('preference-group').style.display = 'block';
+                
+                updateStatusInfo(null, 0, 0);
+                renderUserProfile(null);
+                
+                showNotification('会话已重置');
+            } else {
+                showNotification(result.message, 'error');
+            }
+        });
+        
+        // 搜索视频
+        document.getElementById('btn-search').addEventListener('click', async () => {
+            const query = document.getElementById('search-query').value.trim();
+            
+            if (!query) {
+                showNotification('请输入搜索关键词', 'error');
+                return;
+            }
+            
+            showLoading(true);
+            const result = await apiRequest(`/videos/search?q=${encodeURIComponent(query)}`, 'GET');
+            showLoading(false);
+            
+            if (result.success) {
+                renderVideoList(result.data.videos, 'search-results', false);
+                showNotification(`找到 ${result.data.total} 个相关视频`);
+            } else {
+                showNotification(result.message, 'error');
+            }
+        });
+        
+        // 热门视频
+        document.getElementById('btn-popular').addEventListener('click', async () => {
+            showLoading(true);
+            const result = await apiRequest('/videos/popular', 'GET');
+            showLoading(false);
+            
+            if (result.success) {
+                renderVideoList(result.data.videos, 'search-results', false);
+                showNotification('获取热门视频成功');
+            } else {
+                showNotification(result.message, 'error');
+            }
+        });
+        
+        // 回车搜索
+        document.getElementById('search-query').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter') {
+                document.getElementById('btn-search').click();
+            }
+        });
+    </script>
+</body>
+</html>
