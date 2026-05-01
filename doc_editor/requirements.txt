@@ -1,6 +1,17 @@
+# 核心依赖
 Flask==2.3.3
 Flask-SQLAlchemy==3.1.1
 Flask-JWT-Extended==4.5.3
-Flask-CORS==4.0.0
 Werkzeug==2.3.7
 python-dateutil==2.8.2
+
+# 生产环境WSGI服务器
+gunicorn==21.2.0
+
+# 可选依赖 - 仅开发环境前后端分离时需要
+# flask-cors==4.0.0
+
+# 性能优化依赖（可选）
+# gevent==23.9.1  # 异步worker，提升IO密集型性能
+# psycopg2-binary==2.9.9  # PostgreSQL适配器（如果使用PostgreSQL）
+# mysqlclient==2.2.0  # MySQL适配器（如果使用MySQL）

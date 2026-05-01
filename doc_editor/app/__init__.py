@@ -6,7 +6,6 @@
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
-from flask_cors import CORS
 from config import config
 
 db = SQLAlchemy()
@@ -22,7 +21,12 @@ def create_app(config_name='default'):
     # 初始化扩展
     db.init_app(app)
     jwt.init_app(app)
-    CORS(app)
+    
+    # 仅在开发环境需要时启用CORS（前后端分离开发时）
+    # 生产环境使用Nginx反向代理，同源部署，不需要CORS
+    if app.config.get('ENABLE_CORS', False):
+        from flask_cors import CORS
+        CORS(app)
     
     # 注册蓝图
     from app.routes.auth import auth_bp
