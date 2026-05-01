@@ -3,6 +3,7 @@ import sys
 import os
 import json
 import argparse
+import time
 from typing import Optional, List, Dict, Any
 from dataclasses import asdict
 
@@ -20,7 +21,7 @@ def format_server_simple(server: CloudServer, index: Optional[int] = None) -> st
 
 
 def cmd_add(args: argparse.Namespace) -> int:
-    mapper = IPMapper(args.data_file)
+    mapper = IPMapper(args.data_file, max_workers=args.workers)
     
     if not is_valid_ipv4(args.ip):
         print(f"错误: 无效的IP地址 '{args.ip}'", file=sys.stderr)
@@ -39,7 +40,7 @@ def cmd_add(args: argparse.Namespace) -> int:
 
 
 def cmd_update(args: argparse.Namespace) -> int:
-    mapper = IPMapper(args.data_file)
+    mapper = IPMapper(args.data_file, max_workers=args.workers)
     
     if args.ip is not None and not is_valid_ipv4(args.ip):
         print(f"错误: 无效的IP地址 '{args.ip}'", file=sys.stderr)
@@ -60,7 +61,7 @@ def cmd_update(args: argparse.Namespace) -> int:
 
 
 def cmd_delete(args: argparse.Namespace) -> int:
-    mapper = IPMapper(args.data_file)
+    mapper = IPMapper(args.data_file, max_workers=args.workers)
     
     if not args.id and not args.ip:
         print("错误: 必须提供 --id 或 --ip 参数", file=sys.stderr)
@@ -96,7 +97,7 @@ def cmd_delete(args: argparse.Namespace) -> int:
 
 
 def cmd_query(args: argparse.Namespace) -> int:
-    mapper = IPMapper(args.data_file)
+    mapper = IPMapper(args.data_file, max_workers=args.workers)
     
     if not args.ip and not args.id and not args.user:
         print("错误: 必须提供 --ip、--id 或 --user 参数", file=sys.stderr)
@@ -140,8 +141,98 @@ def cmd_query(args: argparse.Namespace) -> int:
     return 0
 
 
+def cmd_batch_query(args: argparse.Namespace) -> int:
+    mapper = IPMapper(args.data_file, max_workers=args.workers)
+    
+    ips: List[str] = []
+    
+    if args.ips:
+        ips = [ip.strip() for ip in args.ips.split(",") if ip.strip()]
+    elif args.input:
+        try:
+            with open(args.input, "r", encoding="utf-8") as f:
+                ips = [line.strip() for line in f if line.strip()]
+        except Exception as e:
+            print(f"错误: 读取输入文件失败: {e}", file=sys.stderr)
+            return 1
+    
+    if not ips:
+        print("错误: 未提供任何IP地址。请使用 --ips 或 --input 参数", file=sys.stderr)
+        return 1
+    
+    if not args.quiet:
+        print("=" * 60)
+        print("云资源池IP匹配工具 - 批量并发查询")
+        print("=" * 60)
+        print(f"并发数: {args.workers}")
+        print(f"查询IP数量: {len(ips)}")
+        print("-" * 60)
+        start_time = time.time()
+    
+    results = mapper.batch_query_ips(ips, max_workers=args.workers)
+    
+    if not args.quiet:
+        elapsed_time = time.time() - start_time
+        print()
+        print("=" * 60)
+        print("查询结果统计")
+        print("=" * 60)
+        print(f"  总IP数: {results['total']}")
+        print(f"  找到: {results['found']} 个")
+        print(f"  未找到: {results['not_found']} 个")
+        print(f"  无效IP: {results['invalid']} 个")
+        print(f"  耗时: {elapsed_time:.3f} 秒")
+        print(f"  吞吐率: {len(ips)/elapsed_time:.1f} IP/秒")
+        print("-" * 60)
+    
+    if args.output == "json":
+        print(json.dumps(results, ensure_ascii=False, indent=2))
+    elif args.output == "csv":
+        print("ip,found,server_id,user,description")
+        for ip, server_data in results.get("results", {}).items():
+            if server_data:
+                print(f"{ip},是,{server_data.get('server_id','')},{server_data.get('user','')},{server_data.get('description','')}")
+        for ip in results.get("not_found_ips", []):
+            print(f"{ip},否,,,")
+        for ip in results.get("invalid_ips", []):
+            print(f"{ip},无效IP,,,")
+    else:
+        if results.get("results"):
+            print("\n找到的服务器:")
+            print("-" * 60)
+            for i, (ip, server_data) in enumerate(results["results"].items(), 1):
+                if server_data:
+                    print(f"\n[{i}] IP: {ip}")
+                    print(f"    服务器ID: {server_data.get('server_id', '')}")
+                    print(f"    所属用户: {server_data.get('user', '')}")
+                    desc = server_data.get('description', '')
+                    if desc:
+                        print(f"    描述: {desc}")
+        
+        if results.get("not_found_ips"):
+            print(f"\n未找到的IP ({results['not_found']} 个):")
+            print("  " + ", ".join(results["not_found_ips"][:20]))
+            if len(results["not_found_ips"]) > 20:
+                print(f"  ... 还有 {len(results['not_found_ips']) - 20} 个")
+        
+        if results.get("invalid_ips"):
+            print(f"\n无效的IP ({results['invalid']} 个):")
+            print("  " + ", ".join(results["invalid_ips"][:20]))
+            if len(results["invalid_ips"]) > 20:
+                print(f"  ... 还有 {len(results['invalid_ips']) - 20} 个")
+    
+    if args.export:
+        export_format = args.export_format or ("csv" if args.export.endswith(".csv") else "json")
+        if mapper.export_query_results(results, args.export, export_format):
+            print(f"\n结果已导出到: {args.export}")
+        else:
+            print(f"\n警告: 导出结果失败", file=sys.stderr)
+    
+    return 0
+
+
 def cmd_search(args: argparse.Namespace) -> int:
-    mapper = IPMapper(args.data_file)
+    mapper = IPMapper(args.data_file, max_workers=args.workers)
     
     servers = mapper.search_servers(args.keyword)
     
@@ -168,7 +259,7 @@ def cmd_search(args: argparse.Namespace) -> int:
 
 
 def cmd_list(args: argparse.Namespace) -> int:
-    mapper = IPMapper(args.data_file)
+    mapper = IPMapper(args.data_file, max_workers=args.workers)
     
     servers = mapper.get_all_servers()
     
@@ -195,7 +286,7 @@ def cmd_list(args: argparse.Namespace) -> int:
 
 
 def cmd_import(args: argparse.Namespace) -> int:
-    mapper = IPMapper(args.data_file)
+    mapper = IPMapper(args.data_file, max_workers=args.workers)
     
     result = mapper.import_from_csv(args.file)
     
@@ -213,7 +304,7 @@ def cmd_import(args: argparse.Namespace) -> int:
 
 
 def cmd_export(args: argparse.Namespace) -> int:
-    mapper = IPMapper(args.data_file)
+    mapper = IPMapper(args.data_file, max_workers=args.workers)
     
     if mapper.export_to_csv(args.file):
         print(f"成功: 已导出到 {args.file}")
@@ -224,7 +315,7 @@ def cmd_export(args: argparse.Namespace) -> int:
 
 
 def cmd_clear(args: argparse.Namespace) -> int:
-    mapper = IPMapper(args.data_file)
+    mapper = IPMapper(args.data_file, max_workers=args.workers)
     
     if not args.force:
         count = mapper.server_count
@@ -247,42 +338,49 @@ def cmd_clear(args: argparse.Namespace) -> int:
 
 
 def cmd_info(args: argparse.Namespace) -> int:
-    mapper = IPMapper(args.data_file)
+    mapper = IPMapper(args.data_file, max_workers=args.workers)
     
     if args.output == "json":
         info_data = {
-            "version": "1.0.0",
+            "version": "1.1.0",
             "data_file": mapper.data_file,
-            "server_count": mapper.server_count
+            "server_count": mapper.server_count,
+            "max_workers": mapper.max_workers
         }
         print(json.dumps(info_data, ensure_ascii=False, indent=2))
     else:
-        print("=" * 50)
-        print("IP Mapper 信息")
-        print("=" * 50)
+        print("=" * 60)
+        print("IP Mapper 信息 (支持100并发)")
+        print("=" * 60)
         print()
-        print(f"  版本: 1.0.0")
+        print(f"  版本: 1.1.0")
         print(f"  数据文件: {mapper.data_file}")
         print(f"  服务器数量: {mapper.server_count}")
+        print(f"  默认并发数: {mapper.max_workers}")
         print()
         print("  支持的命令:")
-        print("    add      - 添加服务器")
-        print("    update   - 更新服务器")
-        print("    delete   - 删除服务器")
-        print("    query    - 查询服务器")
-        print("    search   - 搜索服务器")
-        print("    list     - 列出所有服务器")
-        print("    import   - 从CSV导入")
-        print("    export   - 导出到CSV")
-        print("    clear    - 清除所有数据")
-        print("    info     - 显示此信息")
+        print("    add          - 添加服务器")
+        print("    update       - 更新服务器")
+        print("    delete       - 删除服务器")
+        print("    query        - 查询单个服务器")
+        print("    batch-query  - 批量并发查询 (支持100并发)")
+        print("    search       - 搜索服务器")
+        print("    list         - 列出所有服务器")
+        print("    import       - 从CSV导入")
+        print("    export       - 导出到CSV")
+        print("    clear        - 清除所有数据")
+        print("    info         - 显示此信息")
+        print()
+        print("  并发控制:")
+        print("    使用 --workers 参数指定并发数 (默认100)")
+        print("    例如: python ip_mapper_simple.py batch-query --workers 100 --ips ...")
     
     return 0
 
 
 def main():
     parser = argparse.ArgumentParser(
-        description="云资源池IP匹配工具 - 管理和查询云服务器IP映射关系",
+        description="云资源池IP匹配工具 - 管理和查询云服务器IP映射关系 (支持100并发)",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 示例用法:
@@ -291,6 +389,12 @@ def main():
   
   # 根据IP查询服务器
   python ip_mapper_simple.py query --ip "192.168.1.10"
+  
+  # 批量并发查询 (100并发)
+  python ip_mapper_simple.py batch-query --ips "192.168.1.10,10.0.0.5,8.8.8.8" --workers 100
+  
+  # 从文件批量查询
+  python ip_mapper_simple.py batch-query --input ips.txt --export results.json
   
   # 列出所有服务器
   python ip_mapper_simple.py list
@@ -303,8 +407,10 @@ def main():
         """
     )
     
-    parser.add_argument("--version", "-v", action="version", version="IP Mapper v1.0.0")
+    parser.add_argument("--version", "-v", action="version", version="IP Mapper v1.1.0 (支持100并发)")
     parser.add_argument("--data-file", "-d", help="指定数据文件路径")
+    parser.add_argument("--workers", "-w", type=int, default=100, 
+                        help="并发数 (默认100，最大建议200)")
     
     subparsers = parser.add_subparsers(title="可用命令", dest="command")
     
@@ -325,12 +431,23 @@ def main():
     delete_parser.add_argument("--ip", help="服务器IP地址")
     delete_parser.add_argument("--force", "-f", action="store_true", help="强制删除，不提示确认")
     
-    query_parser = subparsers.add_parser("query", help="查询服务器映射关系")
+    query_parser = subparsers.add_parser("query", help="查询单个服务器映射关系")
     query_parser.add_argument("--ip", help="根据IP地址查询")
     query_parser.add_argument("--id", help="根据服务器ID查询")
     query_parser.add_argument("--user", help="根据用户查询所有服务器")
     query_parser.add_argument("--output", "-o", choices=["text", "json", "csv"], default="text",
                                help="输出格式 (默认: text)")
+    
+    batch_query_parser = subparsers.add_parser("batch-query", 
+        help="批量并发查询服务器映射关系 (支持100并发)")
+    batch_query_parser.add_argument("--ips", help="逗号分隔的IP地址列表")
+    batch_query_parser.add_argument("--input", "-i", help="输入文件路径，每行一个IP地址")
+    batch_query_parser.add_argument("--output", "-o", choices=["text", "json", "csv"], default="text",
+                                      help="输出格式 (默认: text)")
+    batch_query_parser.add_argument("--export", "-e", help="导出结果到文件")
+    batch_query_parser.add_argument("--export-format", "-ef", choices=["json", "csv"],
+                                      help="导出格式 (默认根据文件扩展名判断)")
+    batch_query_parser.add_argument("--quiet", "-q", action="store_true", help="静默模式，减少输出")
     
     search_parser = subparsers.add_parser("search", help="搜索服务器映射关系")
     search_parser.add_argument("keyword", help="搜索关键词")
@@ -365,6 +482,7 @@ def main():
         "update": cmd_update,
         "delete": cmd_delete,
         "query": cmd_query,
+        "batch-query": cmd_batch_query,
         "search": cmd_search,
         "list": cmd_list,
         "import": cmd_import,

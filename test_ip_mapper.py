@@ -3,6 +3,9 @@ import unittest
 import tempfile
 import os
 import json
+import threading
+import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from ip_mapper import IPMapper, CloudServer, is_valid_ipv4
 
 
@@ -251,6 +254,152 @@ class TestIPMapper(unittest.TestCase):
         }
         server = CloudServer.from_dict(data)
         self.assertEqual(server.description, "")
+
+
+class TestIPMapperConcurrent(unittest.TestCase):
+    def setUp(self):
+        self.temp_file = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8")
+        self.temp_file.close()
+        self.mapper = IPMapper(self.temp_file.name, max_workers=100)
+        
+        for i in range(100):
+            self.mapper.add_server(
+                f"vm-{i:03d}",
+                f"192.168.1.{i+10}",
+                f"用户-{i%10}",
+                f"测试服务器-{i}"
+            )
+    
+    def tearDown(self):
+        if os.path.exists(self.temp_file.name):
+            os.remove(self.temp_file.name)
+    
+    def test_batch_query_ips_basic(self):
+        ips = [f"192.168.1.{i+10}" for i in range(50)]
+        results = self.mapper.batch_query_ips(ips, max_workers=50)
+        
+        self.assertEqual(results["total"], 50)
+        self.assertEqual(results["found"], 50)
+        self.assertEqual(results["not_found"], 0)
+        self.assertEqual(results["invalid"], 0)
+    
+    def test_batch_query_ips_with_invalid(self):
+        ips = [
+            "192.168.1.10",
+            "192.168.1.11",
+            "256.0.0.1",
+            "invalid-ip",
+            "192.168.999.999",
+            "8.8.8.8"
+        ]
+        results = self.mapper.batch_query_ips(ips, max_workers=10)
+        
+        self.assertEqual(results["total"], 6)
+        self.assertEqual(results["found"], 2)
+        self.assertEqual(results["not_found"], 1)
+        self.assertEqual(results["invalid"], 3)
+    
+    def test_batch_query_ips_100_concurrent(self):
+        ips = [f"192.168.1.{i+10}" for i in range(100)]
+        start_time = time.time()
+        results = self.mapper.batch_query_ips(ips, max_workers=100)
+        elapsed_time = time.time() - start_time
+        
+        self.assertEqual(results["total"], 100)
+        self.assertEqual(results["found"], 100)
+        self.assertEqual(results["not_found"], 0)
+        self.assertEqual(results["invalid"], 0)
+        
+        print(f"\n[并发测试] 100并发查询100个IP，耗时: {elapsed_time:.3f}秒")
+        print(f"[并发测试] 吞吐率: {100/elapsed_time:.1f} IP/秒")
+    
+    def test_batch_query_ips_from_file(self):
+        temp_ips_file = tempfile.NamedTemporaryFile(mode="w", suffix=".txt", delete=False, encoding="utf-8")
+        try:
+            for i in range(50):
+                temp_ips_file.write(f"192.168.1.{i+10}\n")
+            temp_ips_file.close()
+            
+            results = self.mapper.batch_query_ips_from_file(temp_ips_file.name, max_workers=50)
+            
+            self.assertEqual(results["total"], 50)
+            self.assertEqual(results["found"], 50)
+        finally:
+            if os.path.exists(temp_ips_file.name):
+                os.remove(temp_ips_file.name)
+    
+    def test_concurrent_read_safety(self):
+        read_count = 100
+        success_count = [0]
+        lock = threading.Lock()
+        
+        def read_worker():
+            for i in range(read_count):
+                server = self.mapper.get_server_by_ip(f"192.168.1.{i%100+10}")
+                if server:
+                    with lock:
+                        success_count[0] += 1
+        
+        threads = []
+        for _ in range(10):
+            t = threading.Thread(target=read_worker)
+            threads.append(t)
+            t.start()
+        
+        for t in threads:
+            t.join()
+        
+        self.assertEqual(success_count[0], 10 * read_count)
+        print(f"\n[并发测试] 10线程并发读取，成功次数: {success_count[0]}")
+    
+    def test_concurrent_mixed_operations(self):
+        ops_count = 50
+        results = []
+        lock = threading.Lock()
+        
+        def mixed_worker(worker_id):
+            for i in range(ops_count):
+                ip = f"192.168.1.{i%100+10}"
+                server = self.mapper.get_server_by_ip(ip)
+                if server:
+                    with lock:
+                        results.append((worker_id, i, server.server_id))
+        
+        with ThreadPoolExecutor(max_workers=20) as executor:
+            futures = [executor.submit(mixed_worker, i) for i in range(20)]
+            for future in as_completed(futures):
+                future.result()
+        
+        self.assertEqual(len(results), 20 * ops_count)
+        print(f"\n[并发测试] 20线程混合操作，成功次数: {len(results)}")
+    
+    def test_export_query_results_json(self):
+        ips = [f"192.168.1.{i+10}" for i in range(10)]
+        results = self.mapper.batch_query_ips(ips, max_workers=10)
+        
+        temp_output = tempfile.NamedTemporaryFile(mode="w", suffix=".json", delete=False, encoding="utf-8")
+        temp_output.close()
+        try:
+            success = self.mapper.export_query_results(results, temp_output.name, "json")
+            self.assertTrue(success)
+            
+            with open(temp_output.name, "r", encoding="utf-8") as f:
+                exported = json.load(f)
+            
+            self.assertEqual(exported["total"], 10)
+            self.assertEqual(exported["found"], 10)
+        finally:
+            if os.path.exists(temp_output.name):
+                os.remove(temp_output.name)
+    
+    def test_max_workers_property(self):
+        self.assertEqual(self.mapper.max_workers, 100)
+        
+        self.mapper.max_workers = 200
+        self.assertEqual(self.mapper.max_workers, 200)
+        
+        self.mapper.max_workers = -10
+        self.assertEqual(self.mapper.max_workers, 200)
 
 
 if __name__ == "__main__":
