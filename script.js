@@ -237,8 +237,8 @@ function closeCart() {
 // 渲染购物车弹窗
 function renderCartModal() {
     const cartItems = document.getElementById('cartItems');
-    const modalTotal = document.querySelector('.modal-total');
-    const modalConfirmBtn = document.querySelector('.modal-confirm-btn');
+    const modalTotal = document.querySelector('.modal-total .total-value');
+    const modalConfirmBtn = document.querySelector('.modal-footer .btn-primary');
     
     // 计算总金额
     let totalPrice = 0;
@@ -279,8 +279,20 @@ function renderCartModal() {
     }
 }
 
+// 页面历史栈
+let pageHistory = ['menu'];
+
+// 返回功能
+function goBack() {
+    if (pageHistory.length > 1) {
+        pageHistory.pop();
+        const previousPage = pageHistory[pageHistory.length - 1];
+        switchPage(previousPage, false);
+    }
+}
+
 // 页面切换
-function switchPage(pageName) {
+function switchPage(pageName, addToHistory = true) {
     const pages = document.querySelectorAll('.page');
     
     pages.forEach(page => {
@@ -288,6 +300,14 @@ function switchPage(pageName) {
     });
     
     document.getElementById(pageName).classList.add('active');
+    
+    // 添加到历史栈
+    if (addToHistory) {
+        pageHistory.push(pageName);
+    }
+    
+    // 更新导航栏
+    updateNavigation(pageName);
     
     // 根据页面执行不同操作
     if (pageName === 'menu') {
@@ -301,6 +321,43 @@ function switchPage(pageName) {
     } else if (pageName === 'aftersale') {
         // 渲染售后页面
         renderAftersalePage();
+    }
+}
+
+// 更新导航栏
+function updateNavigation(pageName) {
+    const pageTitle = document.getElementById('pageTitle');
+    const backBtnNav = document.getElementById('backBtnNav');
+    const cartIconNav = document.getElementById('cartIconNav');
+    
+    const titles = {
+        'menu': '美味餐厅',
+        'booking': '预订确认',
+        'payment': '订单支付',
+        'aftersale': '订单完成'
+    };
+    
+    // 更新标题
+    if (pageTitle) {
+        pageTitle.textContent = titles[pageName] || '美味餐厅';
+    }
+    
+    // 显示/隐藏返回按钮
+    if (backBtnNav) {
+        if (pageName === 'menu') {
+            backBtnNav.style.display = 'none';
+        } else {
+            backBtnNav.style.display = 'flex';
+        }
+    }
+    
+    // 显示/隐藏购物车图标
+    if (cartIconNav) {
+        if (pageName === 'menu') {
+            cartIconNav.style.display = 'flex';
+        } else {
+            cartIconNav.style.display = 'none';
+        }
     }
 }
 
@@ -320,7 +377,7 @@ function renderBookingPage() {
     const selectedItems = document.getElementById('selectedItems');
     const totalQuantity = document.getElementById('totalQuantity');
     const bookingTotal = document.getElementById('bookingTotal');
-    const bookingBtn = document.querySelector('.booking-btn');
+    const bookingBtn = document.querySelector('.btn-primary');
     
     // 计算总数量和总金额
     let totalQty = 0;
@@ -333,15 +390,15 @@ function renderBookingPage() {
     
     // 渲染已选菜品
     selectedItems.innerHTML = Object.values(cart).map(item => `
-        <div class="selected-item">
-            <div class="selected-item-image">
+        <div class="list-item">
+            <div class="list-item-image">
                 <img src="https://trae-api-cn.mchost.guru/api/ide/v1/text_to_image?prompt=${encodeURIComponent(item.image)}&image_size=square" alt="${item.name}">
             </div>
-            <div class="selected-item-info">
-                <h4 class="selected-item-name">${item.name}</h4>
-                <p class="selected-item-price">¥${item.price} × ${item.quantity} = ¥${item.price * item.quantity}</p>
+            <div class="list-item-info">
+                <h4 class="list-item-name">${item.name}</h4>
+                <p class="list-item-price">¥${item.price} × ${item.quantity} = ¥${item.price * item.quantity}</p>
             </div>
-            <div class="selected-item-quantity">
+            <div class="list-item-quantity">
                 <button class="quantity-btn" onclick="decreaseQuantity(${item.id}); renderBookingPage(); updateCartDisplay();">-</button>
                 <span class="quantity-value">${item.quantity}</span>
                 <button class="quantity-btn add" onclick="increaseQuantity(${item.id}); renderBookingPage(); updateCartDisplay();">+</button>
@@ -381,7 +438,7 @@ function goToPayment() {
 // 渲染付款页面
 function renderPaymentPage() {
     const paymentOrderItems = document.getElementById('paymentOrderItems');
-    const orderTotalAmount = document.querySelector('.order-total .amount');
+    const orderTotalAmount = document.querySelector('.total-amount');
     const orderNumberElement = document.getElementById('orderNumber');
     
     // 计算总金额
@@ -415,7 +472,7 @@ function renderPaymentPage() {
 // 选择支付方式
 function selectPayment(element) {
     // 移除所有选中状态
-    const paymentMethods = document.querySelectorAll('.payment-method');
+    const paymentMethods = document.querySelectorAll('.payment-option');
     paymentMethods.forEach(method => {
         method.classList.remove('active');
         const radioCircle = method.querySelector('.radio-circle');
@@ -432,16 +489,16 @@ function selectPayment(element) {
     }
     
     // 记录选中的支付方式
-    const paymentInfo = element.querySelector('.payment-info h4');
-    if (paymentInfo) {
-        selectedPaymentMethod = paymentInfo.textContent;
+    const paymentName = element.querySelector('.payment-name');
+    if (paymentName) {
+        selectedPaymentMethod = paymentName.textContent;
     }
 }
 
 // 完成支付
 function completePayment() {
     // 模拟支付处理
-    const payBtn = document.querySelector('.pay-btn');
+    const payBtn = document.querySelector('#payment .btn-primary');
     payBtn.textContent = '支付中...';
     payBtn.disabled = true;
     
@@ -523,7 +580,7 @@ function submitDeliveryInfo() {
     }
     
     // 模拟提交
-    const submitBtn = document.querySelector('.submit-info-btn');
+    const submitBtn = document.querySelector('#aftersale .btn-primary');
     submitBtn.textContent = '提交中...';
     submitBtn.disabled = true;
     
