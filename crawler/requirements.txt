@@ -1,0 +1,23 @@
+# 华为E8000防火墙文档爬虫依赖
+# 已优化：只保留必要的依赖
+
+# 异步HTTP请求（核心依赖）
+aiohttp>=3.8.0
+
+# 异步文件操作
+aiofiles>=0.8.0
+
+# HTML解析（使用内置html.parser，无需lxml）
+beautifulsoup4>=4.11.0
+
+# YAML配置解析
+pyyaml>=6.0
+
+# 环境变量加载
+python-dotenv>=1.0.0
+
+# 命令行工具
+click>=8.0.0
+
+# 重试机制
+tenacity>=8.2.0
