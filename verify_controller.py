@@ -108,46 +108,82 @@ async def test_basic_functionality():
         traceback.print_exc()
         return False
     
-    # 4. 测试路由计算
-    print("\n[4] Testing Route Calculation...")
+    # 4. 测试全量路由计算
+    print("\n[4] Testing FULL Route Calculation...")
+    print("    (No cache, no early exit, complete Dijkstra for all nodes)")
     try:
+        # 第一次：全量计算
         calc_start = time.time()
-        success = await controller.calculate_all_routes()
-        calc_time = time.time() - calc_start
+        success = await controller.calculate_all_routes(
+            optimize_strategy="cost",
+            force_full_calculation=True,
+        )
+        full_calc_time = time.time() - calc_start
         
         if success:
-            print(f"    ✓ Route calculation completed in {calc_time:.4f}s")
+            print(f"    ✓ FULL route calculation completed in {full_calc_time:.4f}s")
             
             # 验证性能要求
             target_time = PERFORMANCE_CONFIG["max_computation_time"]
-            if calc_time < target_time:
-                print(f"    ✓ Performance requirement met: {calc_time:.4f}s < {target_time}s")
+            if full_calc_time < target_time:
+                print(f"    ✓ Performance requirement met: {full_calc_time:.4f}s < {target_time}s")
             else:
-                print(f"    ⚠ Performance warning: {calc_time:.4f}s >= {target_time}s")
+                print(f"    ⚠ Performance warning: {full_calc_time:.4f}s >= {target_time}s")
             
-            # 测试路径查找
-            print("\n    Testing path finding...")
+            # 验证路由表完整性
+            print("\n    Verifying routing table completeness...")
+            total_routes = 0
+            for switch_id, routing_table in controller.routing_tables.items():
+                route_count = len(routing_table.routes)
+                total_routes += route_count
+                print(f"      - {switch_id}: {route_count} routes")
+            
+            print(f"\n    Total routes across all switches: {total_routes}")
+            
+            # 每个交换机应该有到其他19台交换机的路由
+            expected_routes_per_switch = 19  # 20台交换机，减去自己
+            expected_total_routes = 20 * expected_routes_per_switch
+            
+            if total_routes >= expected_total_routes * 0.9:  # 允许10%的误差
+                print(f"    ✓ Route count verification passed (expected ~{expected_total_routes})")
+            else:
+                print(f"    ⚠ Route count may be incomplete (expected ~{expected_total_routes}, got {total_routes})")
+            
+            # 测试路径查找（全量模式）
+            print("\n    Testing path finding with FULL calculation...")
             test_pairs = [
                 ("access-1", "core-1"),
                 ("core-1", "access-10"),
                 ("pop-1", "access-5"),
+                ("access-1", "access-10"),
+                ("pop-1", "pop-8"),
+                ("core-1", "core-2"),
             ]
             
             for source, dest in test_pairs:
-                paths = controller.get_path_between(source, dest)
+                paths = controller.get_path_between(
+                    source=source,
+                    destination=dest,
+                    optimize_strategy="cost",
+                    force_full=True,  # 全量模式
+                )
                 if paths:
                     primary = paths[0]
                     print(f"      ✓ {source} -> {dest}: {len(paths)} path(s)")
-                    print(f"          Primary: {' -> '.join(primary.nodes)} (cost: {primary.total_cost})")
+                    print(f"          Primary: {' -> '.join(primary['nodes'])} (cost: {primary['total_cost']})")
+                    
+                    # 验证路径有效性
+                    if len(primary['nodes']) >= 2:
+                        print(f"          Path length: {len(primary['nodes'])} hops")
                 else:
                     print(f"      ✗ {source} -> {dest}: No path found")
             
         else:
-            print(f"    ✗ Route calculation failed")
+            print(f"    ✗ FULL route calculation failed")
             return False
             
     except Exception as e:
-        print(f"    ✗ Failed to test route calculation: {e}")
+        print(f"    ✗ Failed to test full route calculation: {e}")
         import traceback
         traceback.print_exc()
         return False
@@ -248,10 +284,11 @@ async def test_basic_functionality():
     print("\nSummary:")
     print(f"  - Network: 20 switches (2 core + 10 access + 8 POP)")
     print(f"  - Topology initialization: {init_time:.4f}s")
-    print(f"  - Route calculation: {calc_time:.4f}s")
+    print(f"  - FULL Route calculation: {full_calc_time:.4f}s")
     print(f"  - Performance target: < {target_time}s")
+    print(f"  - Calculation Mode: FULL (no cache, no early exit)")
     
-    if calc_time < target_time:
+    if full_calc_time < target_time:
         print(f"\n✓ Performance requirement MET!")
     else:
         print(f"\n⚠ Performance requirement NOT MET (but may be acceptable for initial testing)")

@@ -280,33 +280,57 @@ class SDWANController:
         return handler
 
     @timed_operation(logger, "calculate_all_routes")
-    async def calculate_all_routes(self, optimize_strategy: str = "cost") -> bool:
+    async def calculate_all_routes(
+        self,
+        optimize_strategy: str = "cost",
+        force_full_calculation: bool = True,
+    ) -> bool:
         """
         计算所有路由
-        使用分层路由计算以提高性能
+        
+        参数:
+            optimize_strategy: 优化策略
+            force_full_calculation: 是否强制全量计算（禁用分层优化、缓存和提前退出）
         """
-        logger.info("Calculating all routes...")
-        
-        if not self.hierarchical_calculator:
-            # 回退到核心控制器的计算方法
-            return await self.core_controller.calculate_all_routes(optimize_strategy)
-        
-        # 使用分层路由计算器
-        routes = self.hierarchical_calculator.calculate_all_routes()
-        
-        # 更新统计
-        self.stats.total_route_calculations += 1
-        
-        # 计算平均时间
-        if self.stats.total_route_calculations > 1:
-            current_time = time.time()
-            # TODO: 维护更详细的时间统计
-        
-        # 将路由应用到交换机
-        await self._apply_routes_to_switches(routes)
-        
-        logger.info(f"Route calculation complete for {len(routes)} switches")
-        return True
+        if force_full_calculation:
+            logger.info(
+                "Calculating ALL routes in FULL mode "
+                "(no hierarchical optimization, no cache, complete Dijkstra for all nodes)..."
+            )
+            # 全量计算模式：直接使用核心控制器的全量计算
+            result = await self.core_controller.calculate_all_routes(
+                optimize_strategy=optimize_strategy,
+                force_full_calculation=True,
+            )
+            
+            # 将核心控制器的路由表应用到模拟交换机
+            await self._apply_routes_from_core_controller()
+            
+            # 更新统计
+            self.stats.total_route_calculations += 1
+            
+            return result
+        else:
+            logger.info("Calculating all routes with optimization...")
+            
+            if not self.hierarchical_calculator:
+                # 回退到核心控制器的计算方法
+                return await self.core_controller.calculate_all_routes(
+                    optimize_strategy=optimize_strategy,
+                    force_full_calculation=False,
+                )
+            
+            # 使用分层路由计算器
+            routes = self.hierarchical_calculator.calculate_all_routes()
+            
+            # 更新统计
+            self.stats.total_route_calculations += 1
+            
+            # 将路由应用到交换机
+            await self._apply_routes_to_switches(routes)
+            
+            logger.info(f"Route calculation complete for {len(routes)} switches")
+            return True
 
     async def _apply_routes_to_switches(
         self,
@@ -340,18 +364,42 @@ class SDWANController:
         
         logger.debug(f"Applied routes to {len(routes)} switches")
 
+    async def _apply_routes_from_core_controller(self) -> None:
+        """将核心控制器的路由表应用到模拟交换机"""
+        applied_count = 0
+        
+        for switch_id, routing_table in self.core_controller.routing_tables.items():
+            switch = self.switches.get(switch_id)
+            if switch:
+                # 将路由表转换为Route对象字典
+                route_objects = {}
+                for dest, route in routing_table.routes.items():
+                    route_objects[dest] = route
+                
+                # 更新交换机路由表
+                switch.update_routing_table(route_objects)
+                applied_count += 1
+        
+        logger.info(f"Applied routes from core controller to {applied_count} switches")
+
     def get_path_between(
         self,
         source: str,
         destination: str,
         optimize_strategy: str = "cost",
+        force_full: bool = False,
     ) -> Optional[List[Dict[str, Any]]]:
         """
         获取两个节点之间的路径
-        支持缓存以提高性能
+        
+        参数:
+            source: 源节点ID
+            destination: 目标节点ID
+            optimize_strategy: 优化策略
+            force_full: 是否强制全量计算（禁用缓存）
         """
-        # 首先检查缓存
-        if self.route_cache:
+        # 全量计算模式下禁用缓存
+        if not force_full and self.route_cache:
             cached = self.route_cache.get(source, destination)
             if cached:
                 logger.debug(f"Using cached path: {source} -> {destination}")
@@ -359,7 +407,10 @@ class SDWANController:
         
         # 计算路径
         paths = self.core_controller.get_path_between(
-            source, destination, optimize_strategy
+            source=source,
+            destination=destination,
+            optimize_strategy=optimize_strategy,
+            force_full=force_full,
         )
         
         if paths:
@@ -378,8 +429,8 @@ class SDWANController:
                 for path in paths
             ]
             
-            # 缓存结果
-            if self.route_cache:
+            # 缓存结果（非全量模式）
+            if not force_full and self.route_cache:
                 self.route_cache.put(source, destination, cacheable_paths)
             
             return cacheable_paths

@@ -174,14 +174,25 @@ class RouteCalculator:
         return None
 
     def calculate_shortest_paths(
-        self, source: str, destination: Optional[str] = None
+        self,
+        source: str,
+        destination: Optional[str] = None,
+        force_full: bool = False,
     ) -> Dict[str, List[Path]]:
         """
         计算最短路径
         使用Dijkstra算法，支持ECMP（等价多路径）
+        
+        参数:
+            source: 源节点ID
+            destination: 目标节点ID（如果为None，则计算到所有可达节点的路径）
+            force_full: 是否强制全量计算（禁用缓存和提前退出优化）
         """
         start_time = time.time()
-        self._clear_expired_cache()
+        
+        # 全量计算模式下禁用缓存
+        if not force_full:
+            self._clear_expired_cache()
         
         adjacency = self._get_active_adjacency()
         
@@ -209,8 +220,9 @@ class RouteCalculator:
             
             visited.add(current_node)
             
-            # 如果指定了目的地且已到达，可提前退出
-            if destination and current_node == destination:
+            # 全量计算模式下禁用提前退出
+            if not force_full and destination and current_node == destination:
+                # 非全量模式下，如果指定了目的地且已到达，可提前退出
                 break
             
             # 检查超时
@@ -237,8 +249,11 @@ class RouteCalculator:
         # 构建路径
         paths: Dict[str, List[Path]] = defaultdict(list)
         
-        # 如果指定了目的地，只计算到该目的地的路径
-        target_nodes = [destination] if destination else distances.keys()
+        # 全量计算模式下，总是计算到所有可达节点的路径
+        if force_full or destination is None:
+            target_nodes = [k for k in distances.keys() if k != source and distances[k] != float('inf')]
+        else:
+            target_nodes = [destination] if distances.get(destination, float('inf')) != float('inf') else []
         
         for target in target_nodes:
             if target == source:
@@ -254,8 +269,8 @@ class RouteCalculator:
             
             paths[target] = all_paths
             
-            # 缓存结果
-            if PERFORMANCE_CONFIG.get("cache_enabled", True):
+            # 全量计算模式下禁用缓存
+            if not force_full and PERFORMANCE_CONFIG.get("cache_enabled", True):
                 self._route_cache[(source, target)] = all_paths
         
         calculation_time = time.time() - start_time
@@ -621,22 +636,51 @@ class CoreController:
         
         self.logger.debug(f"Created {link_id_counter - 1} links")
 
-    async def calculate_all_routes(self, optimize_strategy: str = "cost") -> bool:
+    async def calculate_all_routes(
+        self,
+        optimize_strategy: str = "cost",
+        force_full_calculation: bool = True,
+    ) -> bool:
         """
         为所有交换机计算路由表
+        
+        参数:
+            optimize_strategy: 优化策略（cost/latency/bandwidth/hop_count/load_balancing）
+            force_full_calculation: 是否强制全量计算（禁用所有优化，确保计算完整性）
         """
         start_time = time.time()
-        self.logger.info("Starting route calculation for all switches...")
+        
+        if force_full_calculation:
+            self.logger.info(
+                "Starting FULL route calculation for all switches "
+                "(cache disabled, no early exit optimization)..."
+            )
+        else:
+            self.logger.info("Starting route calculation for all switches...")
         
         active_switches = self.topology.get_active_switches()
+        total_switches = len(active_switches)
         
-        for switch in active_switches:
+        for idx, switch in enumerate(active_switches):
+            self.logger.debug(
+                f"Calculating routes for switch {idx+1}/{total_switches}: {switch.switch_id}"
+            )
+            
             # 计算从当前交换机到所有其他交换机的路径
-            paths = self.route_calculator.calculate_shortest_paths(switch.switch_id)
+            # 全量计算模式下禁用缓存和提前退出
+            paths = self.route_calculator.calculate_shortest_paths(
+                source=switch.switch_id,
+                destination=None,  # 计算到所有目标的路径
+                force_full=force_full_calculation,
+            )
             
             # 更新路由表
             routing_table = self.routing_tables.get(switch.switch_id)
             if routing_table:
+                # 全量计算模式下，先清空路由表再添加新路由
+                if force_full_calculation:
+                    routing_table.routes.clear()
+                
                 for dest, dest_paths in paths.items():
                     if not dest_paths:
                         continue
@@ -677,8 +721,11 @@ class CoreController:
                     routing_table.add_route(route)
         
         calculation_time = time.time() - start_time
+        
+        mode = "FULL" if force_full_calculation else "OPTIMIZED"
         self.logger.info(
-            f"Route calculation completed in {calculation_time:.4f}s"
+            f"Route calculation ({mode} mode) completed in {calculation_time:.4f}s "
+            f"for {total_switches} switches"
         )
         
         # 检查是否超时
@@ -704,18 +751,34 @@ class CoreController:
         return self.topology_discovery.get_topology_summary()
 
     def get_path_between(
-        self, source: str, destination: str, optimize_strategy: str = "cost"
+        self,
+        source: str,
+        destination: str,
+        optimize_strategy: str = "cost",
+        force_full: bool = False,
     ) -> Optional[List[Path]]:
         """
         获取两个节点之间的路径
+        
+        参数:
+            source: 源节点ID
+            destination: 目标节点ID
+            optimize_strategy: 优化策略
+            force_full: 是否强制全量计算（禁用缓存）
         """
-        # 首先检查缓存
-        cached = self.route_calculator.get_cached_path(source, destination)
-        if cached:
-            return cached
+        # 全量计算模式下禁用缓存
+        if not force_full:
+            # 首先检查缓存
+            cached = self.route_calculator.get_cached_path(source, destination)
+            if cached:
+                return cached
         
         # 计算路径
-        paths = self.route_calculator.calculate_shortest_paths(source, destination)
+        paths = self.route_calculator.calculate_shortest_paths(
+            source=source,
+            destination=destination,
+            force_full=force_full,
+        )
         
         if destination not in paths:
             return None
