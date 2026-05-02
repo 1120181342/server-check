@@ -130,6 +130,34 @@ class TestEmployeeDatabase(unittest.TestCase):
         self.assertEqual(len(logs), 1)
         self.assertEqual(logs[0]['status'], 'success')
         self.assertEqual(logs[0]['employee_id'], 'EMP001')
+    
+    def test_access_logs_by_time_range(self):
+        import time
+        
+        self.db.log_access(status='success', employee_id='EMP001', name='张三', confidence=0.95)
+        time.sleep(0.01)
+        
+        mid_time = time.strftime('%Y-%m-%d %H:%M:%S')
+        time.sleep(0.01)
+        
+        self.db.log_access(status='success', employee_id='EMP002', name='李四', confidence=0.88)
+        
+        all_logs = self.db.get_recent_access_logs(100)
+        self.assertEqual(len(all_logs), 2)
+        
+        future_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time() + 3600))
+        logs_from_mid = self.db.get_access_logs_by_time_range(start_time=mid_time)
+        self.assertEqual(len(logs_from_mid), 1)
+        
+        past_time = time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time() - 3600))
+        logs_to_past = self.db.get_access_logs_by_time_range(end_time=past_time)
+        self.assertEqual(len(logs_to_past), 0)
+        
+        logs_between = self.db.get_access_logs_by_time_range(start_time=past_time, end_time=future_time)
+        self.assertEqual(len(logs_between), 2)
+        
+        logs_with_limit = self.db.get_access_logs_by_time_range(limit=1)
+        self.assertEqual(len(logs_with_limit), 1)
 
 class TestFaceProcessor(unittest.TestCase):
     def setUp(self):

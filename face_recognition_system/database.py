@@ -201,3 +201,32 @@ class EmployeeDatabase:
         conn.close()
         
         return [dict(row) for row in rows]
+    
+    def get_access_logs_by_time_range(self, start_time: Optional[str] = None, 
+                                        end_time: Optional[str] = None,
+                                        limit: int = 1000) -> List[Dict[str, Any]]:
+        conn = self._get_connection()
+        cursor = conn.cursor()
+        
+        query = 'SELECT * FROM access_logs WHERE 1=1'
+        params = []
+        
+        if start_time:
+            query += ' AND access_time >= ?'
+            params.append(start_time)
+        
+        if end_time:
+            query += ' AND access_time <= ?'
+            params.append(end_time)
+        
+        query += ' ORDER BY access_time DESC'
+        
+        if limit:
+            query += ' LIMIT ?'
+            params.append(limit)
+        
+        cursor.execute(query, params)
+        rows = cursor.fetchall()
+        conn.close()
+        
+        return [dict(row) for row in rows]

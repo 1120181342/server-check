@@ -321,8 +321,15 @@ def recognize():
 
 @app.route('/api/access-logs', methods=['GET'])
 def get_access_logs():
-    limit = request.args.get('limit', 100, type=int)
-    logs = db.get_recent_access_logs(limit)
+    start_time = request.args.get('start_time', None)
+    end_time = request.args.get('end_time', None)
+    limit = request.args.get('limit', 1000, type=int)
+    
+    if start_time or end_time:
+        logs = db.get_access_logs_by_time_range(start_time, end_time, limit)
+    else:
+        logs = db.get_recent_access_logs(limit)
+    
     return jsonify({
         'success': True,
         'logs': logs

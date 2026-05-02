@@ -51,7 +51,11 @@ class FaceRecognitionApp {
         
         document.getElementById('searchEmployee').addEventListener('input', (e) => this.filterEmployees(e.target.value));
         
-        document.getElementById('refreshLogs').addEventListener('click', () => this.loadLogs());
+        document.getElementById('searchLogs').addEventListener('click', () => this.loadLogsWithFilter());
+        
+        document.querySelectorAll('.quick-filter-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => this.handleQuickFilter(e.target));
+        });
     }
     
     async startRecognition() {
@@ -327,8 +331,25 @@ class FaceRecognitionApp {
     }
     
     async loadLogs() {
+        await this.loadLogsWithFilter();
+    }
+    
+    async loadLogsWithFilter() {
         try {
-            const response = await fetch('/api/access-logs?limit=50');
+            const startTime = document.getElementById('startTime').value;
+            const endTime = document.getElementById('endTime').value;
+            
+            let url = '/api/access-logs?limit=1000';
+            
+            if (startTime) {
+                url += `&start_time=${encodeURIComponent(startTime)}`;
+            }
+            
+            if (endTime) {
+                url += `&end_time=${encodeURIComponent(endTime)}`;
+            }
+            
+            const response = await fetch(url);
             const result = await response.json();
             
             if (result.success) {
@@ -340,6 +361,70 @@ class FaceRecognitionApp {
             console.error('Error loading logs:', error);
             document.getElementById('logsBody').innerHTML = '<tr><td colspan="6" class="loading">加载失败</td></tr>';
         }
+    }
+    
+    handleQuickFilter(button) {
+        document.querySelectorAll('.quick-filter-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+        button.classList.add('active');
+        
+        const range = button.dataset.range;
+        const now = new Date();
+        let startTime = '';
+        let endTime = '';
+        
+        switch (range) {
+            case 'today':
+                const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                startTime = this.formatDateTimeLocal(todayStart);
+                endTime = this.formatDateTimeLocal(now);
+                break;
+                
+            case 'yesterday':
+                const yesterday = new Date(now);
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+                const yesterdayEnd = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate(), 23, 59, 59);
+                startTime = this.formatDateTimeLocal(yesterdayStart);
+                endTime = this.formatDateTimeLocal(yesterdayEnd);
+                break;
+                
+            case '7days':
+                const weekAgo = new Date(now);
+                weekAgo.setDate(weekAgo.getDate() - 7);
+                startTime = this.formatDateTimeLocal(weekAgo);
+                endTime = this.formatDateTimeLocal(now);
+                break;
+                
+            case '30days':
+                const monthAgo = new Date(now);
+                monthAgo.setDate(monthAgo.getDate() - 30);
+                startTime = this.formatDateTimeLocal(monthAgo);
+                endTime = this.formatDateTimeLocal(now);
+                break;
+                
+            case 'all':
+            default:
+                startTime = '';
+                endTime = '';
+                break;
+        }
+        
+        document.getElementById('startTime').value = startTime;
+        document.getElementById('endTime').value = endTime;
+        
+        this.loadLogsWithFilter();
+    }
+    
+    formatDateTimeLocal(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        
+        return `${year}-${month}-${day}T${hours}:${minutes}`;
     }
     
     renderLogs(logs) {

@@ -89,8 +89,30 @@
             <section id="logs-tab" class="tab-content">
                 <div class="logs-container">
                     <div class="logs-header">
-                        <h2>访问记录</h2>
-                        <button id="refreshLogs" class="btn btn-secondary">刷新</button>
+                        <div class="header-top">
+                            <h2>访问记录</h2>
+                            <button id="searchLogs" class="btn btn-primary">查询</button>
+                        </div>
+                        <div class="time-filter">
+                            <div class="filter-group">
+                                <label for="startTime">开始时间:</label>
+                                <input type="datetime-local" id="startTime">
+                            </div>
+                            <div class="filter-group">
+                                <label for="endTime">结束时间:</label>
+                                <input type="datetime-local" id="endTime">
+                            </div>
+                            <div class="filter-group">
+                                <label>快捷选择:</label>
+                                <div class="quick-filters">
+                                    <button class="quick-filter-btn" data-range="today">今天</button>
+                                    <button class="quick-filter-btn" data-range="yesterday">昨天</button>
+                                    <button class="quick-filter-btn" data-range="7days">近7天</button>
+                                    <button class="quick-filter-btn" data-range="30days">近30天</button>
+                                    <button class="quick-filter-btn active" data-range="all">全部</button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="logs-table-container">
                         <table class="logs-table">
