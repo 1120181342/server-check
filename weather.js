@@ -30,6 +30,18 @@ const WEATHER_CODES = {
     99: { description: '大雷阵雨伴冰雹', icon: '⛈️', advice: '大雷阵雨伴冰雹，避免户外活动' }
 };
 
+// 缓存配置
+const CACHE_CONFIG = {
+    GEOCODING_TTL: 24 * 60 * 60 * 1000, // 24小时
+    WEATHER_TTL: 30 * 60 * 1000 // 30分钟
+};
+
+// 内存缓存
+const memoryCache = {
+    geocoding: new Map(),
+    weather: new Map()
+};
+
 // 当前位置信息
 let currentLocation = {
     lat: 39.9042, // 默认北京
@@ -65,20 +77,27 @@ function searchWeather() {
     geocodeCity(cityName);
 }
 
-// 地理编码：将城市名转换为经纬度
+// 地理编码：将城市名转换为经纬度（使用Open-Meteo API）
 async function geocodeCity(cityName) {
     showLoading();
     hideError();
     hideWeatherContent();
     
+    // 检查缓存
+    const cacheKey = `geo:${cityName.toLowerCase().trim()}`;
+    const cached = memoryCache.geocoding.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_CONFIG.GEOCODING_TTL) {
+        console.log('使用缓存的地理编码数据');
+        currentLocation = { ...cached.data };
+        getWeatherByCoords(cached.data.lat, cached.data.lon, cached.data.name);
+        return;
+    }
+    
     try {
+        // 使用Open-Meteo地理编码API
         const response = await fetch(
-            `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityName)}&limit=1&accept-language=zh-CN`,
-            {
-                headers: {
-                    'User-Agent': 'WeatherApp/1.0'
-                }
-            }
+            `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(cityName)}&count=10&language=zh&format=json`
         );
         
         if (!response.ok) {
@@ -87,23 +106,112 @@ async function geocodeCity(cityName) {
         
         const data = await response.json();
         
-        if (data.length === 0) {
+        if (!data.results || data.results.length === 0) {
             throw new Error('未找到该城市，请检查城市名称是否正确');
         }
         
-        const location = data[0];
-        const lat = parseFloat(location.lat);
-        const lon = parseFloat(location.lon);
-        const name = location.display_name.split(',')[0];
+        // 选择最佳匹配结果（优先选择人口最多的城市）
+        const bestMatch = data.results.reduce((best, current) => {
+            if (!best) return current;
+            // 优先选择类型为城市(PPLC)或人口更多的
+            const currentIsCity = current.feature_code === 'PPLC';
+            const bestIsCity = best.feature_code === 'PPLC';
+            
+            if (currentIsCity && !bestIsCity) return current;
+            if (!currentIsCity && bestIsCity) return best;
+            
+            // 同类型选择人口更多的
+            const currentPop = current.population || 0;
+            const bestPop = best.population || 0;
+            return currentPop > bestPop ? current : best;
+        }, null);
         
-        currentLocation = { lat, lon, name };
-        getWeatherByCoords(lat, lon, name);
+        const location = bestMatch || data.results[0];
+        
+        // 构建显示名称
+        let displayName = location.name;
+        if (location.admin1) {
+            displayName += `, ${location.admin1}`;
+        }
+        if (location.country) {
+            displayName += `, ${location.country}`;
+        }
+        
+        const result = {
+            lat: location.latitude,
+            lon: location.longitude,
+            name: location.name,
+            displayName: displayName
+        };
+        
+        // 缓存结果
+        memoryCache.geocoding.set(cacheKey, {
+            data: result,
+            timestamp: Date.now()
+        });
+        
+        console.log('地理编码结果:', result);
+        
+        currentLocation = { ...result };
+        getWeatherByCoords(result.lat, result.lon, result.name);
         
     } catch (error) {
         console.error('地理编码错误:', error);
+        
+        // 尝试使用备用API（Nominatim）
+        console.log('尝试使用备用地理编码API...');
+        try {
+            const fallbackResult = await geocodeCityFallback(cityName);
+            return;
+        } catch (fallbackError) {
+            console.error('备用地理编码也失败:', fallbackError);
+        }
+        
         hideLoading();
         showError(error.message || '无法获取城市信息，请稍后重试');
     }
+}
+
+// 备用地理编码API（Nominatim）
+async function geocodeCityFallback(cityName) {
+    const response = await fetch(
+        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(cityName)}&limit=1&accept-language=zh-CN&addressdetails=1`,
+        {
+            headers: {
+                'User-Agent': 'WeatherApp/1.0 (Non-commercial use)'
+            }
+        }
+    );
+    
+    if (!response.ok) {
+        throw new Error('备用地理编码请求失败');
+    }
+    
+    const data = await response.json();
+    
+    if (data.length === 0) {
+        throw new Error('未找到该城市');
+    }
+    
+    const location = data[0];
+    const result = {
+        lat: parseFloat(location.lat),
+        lon: parseFloat(location.lon),
+        name: location.display_name.split(',')[0],
+        displayName: location.display_name
+    };
+    
+    // 缓存结果
+    const cacheKey = `geo:${cityName.toLowerCase().trim()}`;
+    memoryCache.geocoding.set(cacheKey, {
+        data: result,
+        timestamp: Date.now()
+    });
+    
+    currentLocation = { ...result };
+    getWeatherByCoords(result.lat, result.lon, result.name);
+    
+    return result;
 }
 
 // 获取当前位置
@@ -123,39 +231,20 @@ function getLocation() {
             const lon = position.coords.longitude;
             
             try {
-                const response = await fetch(
-                    `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&accept-language=zh-CN`,
-                    {
-                        headers: {
-                            'User-Agent': 'WeatherApp/1.0'
-                        }
-                    }
-                );
+                // 尝试使用Open-Meteo获取附近城市（通过反向搜索）
+                // Open-Meteo不直接支持逆地理编码，但我们可以尝试其他方式
+                let cityName = await reverseGeocode(lat, lon);
                 
-                if (!response.ok) {
-                    throw new Error('逆地理编码请求失败');
+                if (!cityName) {
+                    cityName = '当前位置';
                 }
                 
-                const data = await response.json();
-                let name = '当前位置';
-                
-                if (data.address) {
-                    if (data.address.city) {
-                        name = data.address.city;
-                    } else if (data.address.town) {
-                        name = data.address.town;
-                    } else if (data.address.county) {
-                        name = data.address.county;
-                    } else if (data.address.state) {
-                        name = data.address.state;
-                    }
-                }
-                
-                currentLocation = { lat, lon, name };
-                getWeatherByCoords(lat, lon, name);
+                currentLocation = { lat, lon, name: cityName };
+                getWeatherByCoords(lat, lon, cityName);
                 
             } catch (error) {
                 console.error('逆地理编码错误:', error);
+                // 即使无法获取城市名，也显示天气
                 currentLocation = { lat, lon, name: '当前位置' };
                 getWeatherByCoords(lat, lon, '当前位置');
             }
@@ -187,9 +276,81 @@ function getLocation() {
     );
 }
 
+// 逆地理编码：根据经纬度获取城市名
+async function reverseGeocode(lat, lon) {
+    // 方法1：尝试使用Open-Meteo的时区信息推断
+    try {
+        // 先获取天气数据，其中包含时区信息
+        const weatherResponse = await fetch(
+            `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m&timezone=auto`
+        );
+        
+        if (weatherResponse.ok) {
+            const weatherData = await weatherResponse.json();
+            if (weatherData.timezone) {
+                // 从时区中提取部分信息
+                const timezoneParts = weatherData.timezone.split('/');
+                if (timezoneParts.length >= 2) {
+                    const cityName = timezoneParts[timezoneParts.length - 1].replace('_', ' ');
+                    return cityName;
+                }
+            }
+        }
+    } catch (e) {
+        console.log('无法从时区获取城市名');
+    }
+    
+    // 方法2：使用Nominatim逆地理编码作为备用
+    try {
+        const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}&zoom=10&accept-language=zh-CN`,
+            {
+                headers: {
+                    'User-Agent': 'WeatherApp/1.0 (Non-commercial use)'
+                }
+            }
+        );
+        
+        if (response.ok) {
+            const data = await response.json();
+            let name = '当前位置';
+            
+            if (data.address) {
+                if (data.address.city) {
+                    name = data.address.city;
+                } else if (data.address.town) {
+                    name = data.address.town;
+                } else if (data.address.county) {
+                    name = data.address.county;
+                } else if (data.address.state) {
+                    name = data.address.state;
+                }
+            }
+            
+            return name;
+        }
+    } catch (e) {
+        console.log('Nominatim逆地理编码失败');
+    }
+    
+    return null;
+}
+
 // 根据经纬度获取天气信息
 async function getWeatherByCoords(lat, lon, cityName) {
     showLoading();
+    
+    // 检查缓存
+    const cacheKey = `weather:${lat.toFixed(2)},${lon.toFixed(2)}`;
+    const cached = memoryCache.weather.get(cacheKey);
+    
+    if (cached && Date.now() - cached.timestamp < CACHE_CONFIG.WEATHER_TTL) {
+        console.log('使用缓存的天气数据');
+        renderWeatherData(cached.data, cityName);
+        hideLoading();
+        showWeatherContent();
+        return;
+    }
     
     try {
         const response = await fetch(
@@ -203,12 +364,28 @@ async function getWeatherByCoords(lat, lon, cityName) {
         const data = await response.json();
         console.log('天气数据:', data);
         
+        // 缓存结果
+        memoryCache.weather.set(cacheKey, {
+            data: data,
+            timestamp: Date.now()
+        });
+        
         renderWeatherData(data, cityName);
         hideLoading();
         showWeatherContent();
         
     } catch (error) {
         console.error('获取天气信息错误:', error);
+        
+        // 尝试使用缓存数据（如果有）
+        if (cached) {
+            console.log('使用过期缓存数据');
+            renderWeatherData(cached.data, cityName);
+            hideLoading();
+            showWeatherContent();
+            return;
+        }
+        
         hideLoading();
         showError('无法获取天气信息，请稍后重试');
     }
