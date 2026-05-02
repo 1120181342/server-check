@@ -1,0 +1,44 @@
+[Unit]
+Description=文档编辑器 - Flask Web应用
+After=network.target
+
+[Service]
+# 运行用户和组
+User=www-data
+Group=www-data
+
+# 工作目录
+WorkingDirectory=/path/to/doc_editor
+
+# 虚拟环境路径（如果使用）
+# Environment="PATH=/path/to/venv/bin"
+
+# 环境变量
+Environment="FLASK_ENV=production"
+Environment="SECRET_KEY=your-secret-key-change-in-production"
+Environment="JWT_SECRET_KEY=your-jwt-secret-key-change-in-production"
+
+# 启动命令（使用Gunicorn）
+ExecStart=/path/to/venv/bin/gunicorn -c gunicorn.conf.py run:app
+
+# 重启策略
+Restart=always
+RestartSec=5
+
+# 进程管理
+Type=notify
+NotifyAccess=all
+
+# 安全设置
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/path/to/doc_editor/instance /path/to/doc_editor/storage /path/to/doc_editor/logs /tmp
+
+# 资源限制
+LimitNOFILE=65536
+LimitNPROC=4096
+
+[Install]
+WantedBy=multi-user.target
