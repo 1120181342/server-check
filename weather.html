@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>天气预报</title>
+    <link rel="stylesheet" href="weather.css">
+</head>
+<body>
+    <div class="weather-container">
+        <!-- 顶部搜索栏 -->
+        <header class="search-header">
+            <div class="search-box">
+                <input type="text" id="cityInput" placeholder="输入城市名称（如：北京、上海、London）">
+                <button id="searchBtn" onclick="searchWeather()">搜索</button>
+            </div>
+            <div class="location-btn" onclick="getLocation()">
+                <span>📍</span>
+                <span>当前位置</span>
+            </div>
+        </header>
+
+        <!-- 加载中状态 -->
+        <div id="loading" class="loading-screen" style="display: none;">
+            <div class="loading-spinner"></div>
+            <p>正在获取天气信息...</p>
+        </div>
+
+        <!-- 错误提示 -->
+        <div id="error" class="error-message" style="display: none;">
+            <div class="error-icon">⚠️</div>
+            <p id="errorText">获取天气信息失败</p>
+            <button onclick="retrySearch()">重试</button>
+        </div>
+
+        <!-- 天气信息内容 -->
+        <main id="weatherContent" class="weather-content">
+            <!-- 当前城市信息 -->
+            <section class="location-section">
+                <div class="location-info">
+                    <h1 id="cityName">北京</h1>
+                    <p id="currentDate">2024年5月1日 星期三</p>
+                </div>
+                <div class="current-weather">
+                    <div class="weather-icon" id="currentWeatherIcon">☀️</div>
+                    <div class="temperature-info">
+                        <span id="currentTemp" class="current-temp">25°</span>
+                        <span id="weatherDesc" class="weather-desc">晴朗</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 当前天气详情 -->
+            <section class="weather-details">
+                <div class="detail-card">
+                    <div class="detail-icon">💧</div>
+                    <div class="detail-content">
+                        <span class="detail-label">湿度</span>
+                        <span id="humidity" class="detail-value">60%</span>
+                    </div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-icon">💨</div>
+                    <div class="detail-content">
+                        <span class="detail-label">风速</span>
+                        <span id="windSpeed" class="detail-value">12 km/h</span>
+                    </div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-icon">🌡️</div>
+                    <div class="detail-content">
+                        <span class="detail-label">体感温度</span>
+                        <span id="feelsLike" class="detail-value">26°</span>
+                    </div>
+                </div>
+                <div class="detail-card">
+                    <div class="detail-icon">👁️</div>
+                    <div class="detail-content">
+                        <span class="detail-label">能见度</span>
+                        <span id="visibility" class="detail-value">10 km</span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 未来7天天气预报 -->
+            <section class="forecast-section">
+                <h2 class="section-title">未来7天预报</h2>
+                <div id="forecastContainer" class="forecast-container">
+                    <!-- 7天预报将通过JavaScript动态生成 -->
+                </div>
+            </section>
+
+            <!-- 穿搭与出行建议 -->
+            <section class="advice-section">
+                <h2 class="section-title">穿搭与出行建议</h2>
+                <div class="advice-container">
+                    <div class="advice-card">
+                        <div class="advice-icon">👕</div>
+                        <h3 class="advice-title">穿搭建议</h3>
+                        <p id="clothingAdvice" class="advice-text">
+                            建议穿着轻薄透气的衣物，如短袖衬衫或T恤，搭配薄外套早晚使用。
+                        </p>
+                    </div>
+                    <div class="advice-card">
+                        <div class="advice-icon">🚗</div>
+                        <h3 class="advice-title">出行建议</h3>
+                        <p id="travelAdvice" class="advice-text">
+                            天气晴朗，非常适合户外活动。建议携带防晒霜和太阳镜，注意补水。
+                        </p>
+                    </div>
+                    <div class="advice-card">
+                        <div class="advice-icon">☂️</div>
+                        <h3 class="advice-title">天气提醒</h3>
+                        <p id="weatherAlert" class="advice-text">
+                            紫外线强度中等，请注意防晒。昼夜温差较大，早晚请注意保暖。
+                        </p>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="weather.js"></script>
+</body>
+</html>
