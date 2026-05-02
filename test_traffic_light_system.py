@@ -474,6 +474,385 @@ def test_callback_stress():
     return True
 
 
+def test_callback_throws_value_error():
+    """测试回调抛出 ValueError"""
+    print("\n" + "=" * 60)
+    print("测试: 回调抛出 ValueError")
+    print("=" * 60)
+    
+    config = SystemConfig(
+        green_duration=3,
+        yellow_duration=1,
+        red_duration=3
+    )
+    system = TrafficLightSystem(config=config)
+    
+    normal_callback_calls = []
+    
+    def bad_callback(direction, color, remaining):
+        raise ValueError("模拟回调中的 ValueError")
+    
+    def good_callback(direction, color, remaining):
+        normal_callback_calls.append({
+            "direction": direction,
+            "color": color,
+            "remaining": remaining
+        })
+    
+    system.register_state_change_callback("bad", bad_callback)
+    system.register_state_change_callback("good", good_callback)
+    
+    initial_count = len(normal_callback_calls)
+    print(f"  初始正常回调次数: {initial_count}")
+    
+    try:
+        system.advance_time(5)
+    except Exception as e:
+        assert False, f"回调抛出的异常不应该传播到调用者: {e}"
+    
+    final_count = len(normal_callback_calls)
+    print(f"  推进后正常回调次数: {final_count}")
+    assert final_count > initial_count, "即使其他回调抛出异常，正常回调也应该被调用"
+    
+    states = system.get_all_states()
+    print(f"  系统状态: 东西={states[Direction.EAST_WEST].color.value}, 南北={states[Direction.NORTH_SOUTH].color.value}")
+    
+    system.unregister_state_change_callback("bad")
+    system.unregister_state_change_callback("good")
+    
+    print("✓ 回调抛出 ValueError 测试通过")
+    return True
+
+
+def test_callback_throws_type_error():
+    """测试回调抛出 TypeError"""
+    print("\n" + "=" * 60)
+    print("测试: 回调抛出 TypeError")
+    print("=" * 60)
+    
+    config = SystemConfig(
+        green_duration=2,
+        yellow_duration=1,
+        red_duration=2
+    )
+    system = TrafficLightSystem(config=config)
+    
+    successful_calls = []
+    
+    def bad_callback(direction, color, remaining):
+        raise TypeError("模拟回调中的 TypeError")
+    
+    def tracking_callback(direction, color, remaining):
+        successful_calls.append(True)
+    
+    system.register_state_change_callback("bad_type", bad_callback)
+    system.register_state_change_callback("tracker", tracking_callback)
+    
+    initial_states = system.get_all_states()
+    print(f"  初始状态: 东西={initial_states[Direction.EAST_WEST].color.value}")
+    
+    try:
+        system.advance_time(4)
+    except Exception as e:
+        assert False, f"回调异常不应该传播: {e}"
+    
+    final_states = system.get_all_states()
+    print(f"  推进后状态: 东西={final_states[Direction.EAST_WEST].color.value}")
+    print(f"  成功调用次数: {len(successful_calls)}")
+    
+    assert len(successful_calls) > 0, "正常回调应该被调用"
+    
+    print("✓ 回调抛出 TypeError 测试通过")
+    return True
+
+
+def test_callback_throws_runtime_error():
+    """测试回调抛出 RuntimeError"""
+    print("\n" + "=" * 60)
+    print("测试: 回调抛出 RuntimeError")
+    print("=" * 60)
+    
+    config = SystemConfig(
+        green_duration=4,
+        yellow_duration=2,
+        red_duration=4
+    )
+    system = TrafficLightSystem(config=config)
+    
+    state_before = system.get_all_states()
+    cycle_before = system.get_system_info()["cycle_count"]
+    
+    def bad_callback(direction, color, remaining):
+        raise RuntimeError("模拟回调中的严重错误")
+    
+    system.register_state_change_callback("runtime_error", bad_callback)
+    
+    try:
+        system.advance_time(10)
+    except Exception as e:
+        assert False, f"回调的 RuntimeError 不应该传播: {e}"
+    
+    state_after = system.get_all_states()
+    cycle_after = system.get_system_info()["cycle_count"]
+    
+    print(f"  推进前周期数: {cycle_before}")
+    print(f"  推进后周期数: {cycle_after}")
+    print(f"  推进前状态: 东西={state_before[Direction.EAST_WEST].color.value}")
+    print(f"  推进后状态: 东西={state_after[Direction.EAST_WEST].color.value}")
+    
+    assert cycle_after > cycle_before, "即使回调抛出异常，系统也应该正常推进"
+    
+    print("✓ 回调抛出 RuntimeError 测试通过")
+    return True
+
+
+def test_mixed_good_and_bad_callbacks():
+    """测试混合正常和异常回调"""
+    print("\n" + "=" * 60)
+    print("测试: 混合正常和异常回调")
+    print("=" * 60)
+    
+    config = SystemConfig(
+        green_duration=3,
+        yellow_duration=1,
+        red_duration=3
+    )
+    system = TrafficLightSystem(config=config)
+    
+    callback_results = {
+        "good1": [],
+        "good2": [],
+        "good3": [],
+    }
+    
+    def make_bad_callback(exception_type):
+        def callback(d, c, r):
+            raise exception_type(f"模拟 {exception_type.__name__}")
+        return callback
+    
+    def make_good_callback(name):
+        def callback(d, c, r):
+            callback_results[name].append({
+                "direction": d,
+                "color": c,
+                "remaining": r
+            })
+        return callback
+    
+    system.register_state_change_callback("bad1", make_bad_callback(ValueError))
+    system.register_state_change_callback("good1", make_good_callback("good1"))
+    system.register_state_change_callback("bad2", make_bad_callback(TypeError))
+    system.register_state_change_callback("good2", make_good_callback("good2"))
+    system.register_state_change_callback("bad3", make_bad_callback(RuntimeError))
+    system.register_state_change_callback("good3", make_good_callback("good3"))
+    
+    print("  注册回调: 3个异常回调 + 3个正常回调")
+    
+    try:
+        system.advance_time(8)
+    except Exception as e:
+        assert False, f"混合回调中的异常不应该传播: {e}"
+    
+    total_good_calls = sum(len(v) for v in callback_results.values())
+    print(f"  正常回调总调用次数: {total_good_calls}")
+    for name, calls in callback_results.items():
+        print(f"    {name}: {len(calls)} 次")
+    
+    assert total_good_calls > 0, "至少有一些正常回调应该被调用"
+    
+    info = system.get_system_info()
+    print(f"  系统周期数: {info['cycle_count']}")
+    
+    for name in ["bad1", "bad2", "bad3", "good1", "good2", "good3"]:
+        system.unregister_state_change_callback(name)
+    
+    print("✓ 混合正常和异常回调测试通过")
+    return True
+
+
+def test_callback_throws_exception_repeatedly():
+    """测试回调持续抛出异常（抗压性）"""
+    print("\n" + "=" * 60)
+    print("测试: 回调持续抛出异常 (抗压性)")
+    print("=" * 60)
+    
+    config = SystemConfig(
+        green_duration=2,
+        yellow_duration=1,
+        red_duration=2
+    )
+    system = TrafficLightSystem(config=config)
+    
+    bad_callback_count = 0
+    good_callback_count = 0
+    
+    def very_bad_callback(d, c, r):
+        nonlocal bad_callback_count
+        bad_callback_count += 1
+        raise Exception(f"第 {bad_callback_count} 次抛出异常")
+    
+    def persistent_good_callback(d, c, r):
+        nonlocal good_callback_count
+        good_callback_count += 1
+    
+    system.register_state_change_callback("very_bad", very_bad_callback)
+    system.register_state_change_callback("persistent_good", persistent_good_callback)
+    
+    total_seconds = 30
+    print(f"  计划推进 {total_seconds} 秒")
+    print(f"  预计触发多次状态变化")
+    
+    try:
+        system.advance_time(total_seconds)
+    except Exception as e:
+        assert False, f"即使回调持续抛出异常，系统也应该继续运行: {e}"
+    
+    info = system.get_system_info()
+    print(f"  实际完成周期数: {info['cycle_count']}")
+    print(f"  异常回调被调用次数: {bad_callback_count}")
+    print(f"  正常回调被调用次数: {good_callback_count}")
+    
+    assert info["cycle_count"] > 0, "系统应该完成多个周期"
+    assert good_callback_count > 0, "正常回调应该被调用"
+    assert bad_callback_count == good_callback_count, "所有回调（包括异常的）应该被调用相同次数"
+    
+    system.unregister_state_change_callback("very_bad")
+    system.unregister_state_change_callback("persistent_good")
+    
+    print("✓ 回调持续抛出异常测试通过")
+    return True
+
+
+def test_callback_exception_during_running():
+    """测试系统运行时回调抛出异常"""
+    print("\n" + "=" * 60)
+    print("测试: 系统运行时回调抛出异常")
+    print("=" * 60)
+    
+    config = SystemConfig(
+        green_duration=1,
+        yellow_duration=1,
+        red_duration=1
+    )
+    system = TrafficLightSystem(config=config)
+    
+    exception_count = 0
+    success_count = 0
+    
+    def exception_callback(d, c, r):
+        nonlocal exception_count
+        exception_count += 1
+        raise ValueError(f"运行时异常 #{exception_count}")
+    
+    def success_callback(d, c, r):
+        nonlocal success_count
+        success_count += 1
+    
+    system.register_state_change_callback("exception", exception_callback)
+    system.register_state_change_callback("success", success_callback)
+    
+    print("  启动系统...")
+    assert system.start()
+    
+    time.sleep(3)
+    
+    print("  停止系统...")
+    assert system.stop()
+    
+    info = system.get_system_info()
+    print(f"  运行期间周期数: {info['cycle_count']}")
+    print(f"  异常回调调用次数: {exception_count}")
+    print(f"  正常回调调用次数: {success_count}")
+    
+    assert info["cycle_count"] > 0, "系统应该正常运行"
+    assert success_count > 0, "正常回调应该被调用"
+    
+    system.unregister_state_change_callback("exception")
+    system.unregister_state_change_callback("success")
+    
+    print("✓ 系统运行时回调抛出异常测试通过")
+    return True
+
+
+def test_callback_none_value():
+    """测试处理可能的 None 值情况"""
+    print("\n" + "=" * 60)
+    print("测试: 回调处理异常参数")
+    print("=" * 60)
+    
+    config = SystemConfig(
+        green_duration=5,
+        yellow_duration=2,
+        red_duration=5
+    )
+    system = TrafficLightSystem(config=config)
+    
+    callback_errors = []
+    
+    def paranoid_callback(direction, color, remaining):
+        try:
+            assert direction is not None
+            assert color is not None
+            assert remaining is not None
+            assert isinstance(remaining, int)
+        except AssertionError as e:
+            callback_errors.append(str(e))
+    
+    system.register_state_change_callback("paranoid", paranoid_callback)
+    
+    system.advance_time(7)
+    
+    states = system.get_all_states()
+    info = system.get_system_info()
+    
+    print(f"  周期数: {info['cycle_count']}")
+    print(f"  东西方向: {states[Direction.EAST_WEST].color.value}")
+    print(f"  南北方向: {states[Direction.NORTH_SOUTH].color.value}")
+    print(f"  回调参数验证错误数: {len(callback_errors)}")
+    
+    assert len(callback_errors) == 0, "回调参数应该都是有效的"
+    
+    system.unregister_state_change_callback("paranoid")
+    
+    print("✓ 回调参数有效性测试通过")
+    return True
+
+
+def test_unregister_nonexistent_callback():
+    """测试注销不存在的回调"""
+    print("\n" + "=" * 60)
+    print("测试: 注销不存在的回调")
+    print("=" * 60)
+    
+    system = TrafficLightSystem()
+    
+    try:
+        system.unregister_state_change_callback("nonexistent")
+        print("  注销不存在的回调没有抛出异常")
+    except Exception as e:
+        assert False, f"注销不存在的回调不应该抛出异常: {e}"
+    
+    try:
+        system.unregister_state_change_callback("")
+        print("  注销空名称回调没有抛出异常")
+    except Exception as e:
+        assert False, f"注销空名称回调不应该抛出异常: {e}"
+    
+    def sample_callback(d, c, r):
+        pass
+    
+    system.register_state_change_callback("test", sample_callback)
+    
+    try:
+        system.unregister_state_change_callback("test")
+        print("  正常注销已存在的回调成功")
+    except Exception as e:
+        assert False, f"正常注销应该成功: {e}"
+    
+    print("✓ 注销不存在的回调测试通过")
+    return True
+
+
 def test_edge_cases():
     """测试边界情况"""
     print("\n" + "=" * 60)
@@ -570,6 +949,14 @@ def main():
         ("极端周期数", test_extreme_cycle_count),
         ("快速启动停止", test_rapid_start_stop),
         ("回调压力", test_callback_stress),
+        ("回调抛出 ValueError", test_callback_throws_value_error),
+        ("回调抛出 TypeError", test_callback_throws_type_error),
+        ("回调抛出 RuntimeError", test_callback_throws_runtime_error),
+        ("混合正常和异常回调", test_mixed_good_and_bad_callbacks),
+        ("回调持续抛出异常", test_callback_throws_exception_repeatedly),
+        ("系统运行时回调抛出异常", test_callback_exception_during_running),
+        ("回调参数有效性", test_callback_none_value),
+        ("注销不存在的回调", test_unregister_nonexistent_callback),
         ("边界情况", test_edge_cases),
         ("系统信息一致性", test_system_info_consistency),
     ]
