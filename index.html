@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>餐厅订餐管理系统</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 顶部导航栏 -->
+        <header class="top-nav">
+            <button class="back-btn-nav" id="backBtnNav" onclick="goBack()" style="display:none;">
+                <span>←</span>
+            </button>
+            <h1 class="app-title" id="pageTitle">美味餐厅</h1>
+            <div class="nav-actions">
+                <div class="cart-icon" id="cartIconNav" onclick="showCart()">
+                    <span class="cart-count">0</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主内容区域 -->
+        <main class="main-content">
+            <!-- 选餐页面 -->
+            <section id="menu" class="page active">
+                <div class="section-header">
+                    <h2 class="section-title">美食菜单</h2>
+                    <span class="section-subtitle">共30道精选菜品</span>
+                </div>
+                
+                <div class="category-tabs">
+                    <button class="category-tab active" onclick="filterCategory('all')">全部</button>
+                    <button class="category-tab" onclick="filterCategory('hot')">热菜</button>
+                    <button class="category-tab" onclick="filterCategory('cold')">凉菜</button>
+                    <button class="category-tab" onclick="filterCategory('drink')">饮品</button>
+                    <button class="category-tab" onclick="filterCategory('dessert')">甜点</button>
+                </div>
+                
+                <div class="menu-list" id="menuList">
+                    <!-- 菜品卡片将通过JavaScript动态生成 -->
+                </div>
+                
+                <div class="bottom-bar">
+                    <div class="cart-summary" onclick="showCart()">
+                        <span class="cart-icon-big">
+                            <span class="cart-count-big">0</span>
+                        </span>
+                        <div class="cart-info">
+                            <span class="cart-total">¥0.00</span>
+                            <span class="cart-count-text">共0件商品</span>
+                        </div>
+                    </div>
+                    <button class="confirm-btn" onclick="goToBooking()">去预订</button>
+                </div>
+            </section>
+
+            <!-- 预订页面 -->
+            <section id="booking" class="page">
+                <div class="section-header">
+                    <h2 class="section-title">预订确认</h2>
+                    <span class="section-subtitle">请确认您的订单</span>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">已选菜品</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="item-list" id="selectedItems">
+                            <!-- 已选菜品将通过JavaScript动态生成 -->
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card summary-card">
+                    <div class="card-body">
+                        <div class="summary-row">
+                            <span class="summary-label">菜品数量</span>
+                            <span class="summary-value" id="totalQuantity">0 件</span>
+                        </div>
+                        <div class="summary-row total">
+                            <span class="summary-label">订单总额</span>
+                            <span class="summary-value price" id="bookingTotal">¥0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-bar">
+                    <button class="btn btn-primary btn-full" onclick="goToPayment()">确认预订</button>
+                </div>
+            </section>
+
+            <!-- 付款页面 -->
+            <section id="payment" class="page">
+                <div class="section-header">
+                    <h2 class="section-title">订单支付</h2>
+                    <span class="section-subtitle">请选择支付方式</span>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">订单信息</h3>
+                        <span class="order-number">订单号: <span id="orderNumber">ORD202405010001</span></span>
+                    </div>
+                    <div class="card-body">
+                        <div class="order-item-list" id="paymentOrderItems">
+                            <!-- 订单菜品将通过JavaScript动态生成 -->
+                        </div>
+                        <div class="order-total-row">
+                            <span class="total-label">应付金额</span>
+                            <span class="total-amount price">¥0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">选择支付方式</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="payment-option active" onclick="selectPayment(this)">
+                            <div class="payment-icon">💳</div>
+                            <div class="payment-details">
+                                <h4 class="payment-name">微信支付</h4>
+                                <p class="payment-desc">推荐使用，支付便捷</p>
+                            </div>
+                            <div class="payment-check">
+                                <span class="radio-circle checked"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="payment-option" onclick="selectPayment(this)">
+                            <div class="payment-icon">💰</div>
+                            <div class="payment-details">
+                                <h4 class="payment-name">支付宝</h4>
+                                <p class="payment-desc">安全可靠，快捷支付</p>
+                            </div>
+                            <div class="payment-check">
+                                <span class="radio-circle"></span>
+                            </div>
+                        </div>
+                        
+                        <div class="payment-option" onclick="selectPayment(this)">
+                            <div class="payment-icon">🏦</div>
+                            <div class="payment-details">
+                                <h4 class="payment-name">银行卡支付</h4>
+                                <p class="payment-desc">支持各大银行储蓄卡、信用卡</p>
+                            </div>
+                            <div class="payment-check">
+                                <span class="radio-circle"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-bar">
+                    <button class="btn btn-primary btn-full" onclick="completePayment()">立即支付</button>
+                </div>
+            </section>
+
+            <!-- 售后页面 -->
+            <section id="aftersale" class="page">
+                <div class="section-header">
+                    <h2 class="section-title">订单完成</h2>
+                    <span class="section-subtitle">感谢您的订购</span>
+                </div>
+                
+                <div class="success-section">
+                    <div class="success-icon">
+                        <div class="checkmark">✓</div>
+                    </div>
+                    <div class="success-message">
+                        <h2 class="success-title">支付成功！</h2>
+                        <p class="success-text">您的订单已确认</p>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">订单详情</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="info-row">
+                            <span class="info-label">订单号</span>
+                            <span class="info-value" id="aftersaleOrderNumber">ORD202405010001</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">支付金额</span>
+                            <span class="info-value price" id="aftersaleAmount">¥0.00</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">支付方式</span>
+                            <span class="info-value" id="aftersalePaymentMethod">微信支付</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">下单时间</span>
+                            <span class="info-value" id="aftersaleTime">2024-05-01 12:00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <div class="card-header">
+                        <h3 class="card-title">配送信息</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-field">
+                            <label class="form-label" for="customerName">姓名</label>
+                            <input type="text" class="form-input" id="customerName" placeholder="请输入您的姓名">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label class="form-label" for="customerPhone">联系电话</label>
+                            <input type="tel" class="form-input" id="customerPhone" placeholder="请输入您的联系电话">
+                        </div>
+                        
+                        <div class="form-field">
+                            <label class="form-label" for="customerAddress">配送地址</label>
+                            <textarea class="form-textarea" id="customerAddress" placeholder="请输入详细的配送地址"></textarea>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label class="form-label" for="deliveryTime">配送时间</label>
+                            <select class="form-select" id="deliveryTime">
+                                <option value="now">立即配送</option>
+                                <option value="12:00">今天 12:00-13:00</option>
+                                <option value="18:00">今天 18:00-19:00</option>
+                                <option value="tomorrow">明天 12:00-13:00</option>
+                            </select>
+                        </div>
+                        
+                        <div class="form-field">
+                            <label class="form-label" for="remarks">备注</label>
+                            <textarea class="form-textarea" id="remarks" placeholder="如有特殊要求，请在此备注"></textarea>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="action-bar">
+                    <button class="btn btn-primary btn-full" onclick="submitDeliveryInfo()">提交配送信息</button>
+                    <button class="btn btn-secondary btn-full" onclick="continueShopping()">继续点餐</button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- 购物车弹窗 -->
+    <div id="cartModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 class="modal-title">购物车</h3>
+                <button class="modal-close" onclick="closeCart()">×</button>
+            </div>
+            
+            <div class="modal-body">
+                <div class="cart-item-list" id="cartItems">
+                    <!-- 购物车内容将通过JavaScript动态生成 -->
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <div class="modal-total">
+                    <span class="total-label">合计：</span>
+                    <span class="total-value price">¥0.00</span>
+                </div>
+                <button class="btn btn-primary" onclick="goToBooking()">去预订</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
