@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>公司人脸识别系统 v2.0</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-top">
+                <h1>公司人脸识别系统</h1>
+                <div class="system-status" id="systemStatus">
+                    <span class="status-indicator healthy"></span>
+                    <span class="status-text">系统正常</span>
+                </div>
+            </div>
+            <div class="tabs">
+                <button class="tab-btn active" data-tab="recognize">
+                    <span class="tab-icon">👤</span>
+                    <span>人脸识别</span>
+                </button>
+                <button class="tab-btn" data-tab="manage">
+                    <span class="tab-icon">📋</span>
+                    <span>员工管理</span>
+                </button>
+                <button class="tab-btn" data-tab="logs">
+                    <span class="tab-icon">📊</span>
+                    <span>访问记录</span>
+                </button>
+                <button class="tab-btn" data-tab="stats">
+                    <span class="tab-icon">📈</span>
+                    <span>系统监控</span>
+                </button>
+            </div>
+        </header>
+
+        <main>
+            <section id="recognize-tab" class="tab-content active">
+                <div class="recognize-container">
+                    <div class="video-wrapper">
+                        <div class="video-container">
+                            <video id="video" autoplay muted playsinline></video>
+                            <canvas id="canvas" style="display: none;"></canvas>
+                            <div id="overlay" class="overlay">
+                                <div id="overlay-content" class="overlay-content"></div>
+                            </div>
+                            <div id="scanLine" class="scan-line"></div>
+                        </div>
+                        <div class="video-info">
+                            <div class="info-item">
+                                <span class="label">帧率:</span>
+                                <span id="fpsDisplay" class="value">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">质量:</span>
+                                <span id="qualityDisplay" class="value">--</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">状态:</span>
+                                <span id="recognitionStatus" class="value">待机</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="controls-wrapper">
+                        <div class="controls">
+                            <button id="startBtn" class="btn btn-primary btn-large">
+                                <span class="btn-icon">▶</span>
+                                <span>开始识别</span>
+                            </button>
+                            <button id="stopBtn" class="btn btn-secondary btn-large" style="display: none;">
+                                <span class="btn-icon">⏹</span>
+                                <span>停止识别</span>
+                            </button>
+                            <button id="captureBtn" class="btn btn-info btn-large">
+                                <span class="btn-icon">📷</span>
+                                <span>单次识别</span>
+                            </button>
+                        </div>
+                        
+                        <div class="settings-panel">
+                            <div class="setting-item">
+                                <label for="intervalSlider">识别间隔 (ms):</label>
+                                <input type="range" id="intervalSlider" min="500" max="3000" value="1000" step="100">
+                                <span id="intervalValue">1000ms</span>
+                            </div>
+                            <div class="setting-item">
+                                <label for="qualityThreshold">质量阈值:</label>
+                                <input type="range" id="qualityThreshold" min="10" max="90" value="30" step="5">
+                                <span id="qualityThresholdValue">30%</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div id="statusPanel" class="status-panel">
+                        <div id="statusMessage" class="status-message"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="manage-tab" class="tab-content">
+                <div class="manage-container">
+                    <div class="add-employee-section card">
+                        <h2>添加新员工</h2>
+                        <form id="employeeForm" class="employee-form">
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="employeeId">员工编号 *</label>
+                                    <input type="text" id="employeeId" name="employeeId" required placeholder="例如: EMP001">
+                                </div>
+                                <div class="form-group">
+                                    <label for="employeeName">姓名 *</label>
+                                    <input type="text" id="employeeName" name="employeeName" required placeholder="请输入姓名">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="department">部门 *</label>
+                                    <input type="text" id="department" name="department" required placeholder="请输入部门">
+                                </div>
+                                <div class="form-group">
+                                    <label for="email">邮箱</label>
+                                    <input type="email" id="email" name="email" placeholder="可选">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group">
+                                    <label for="phone">电话</label>
+                                    <input type="tel" id="phone" name="phone" placeholder="可选">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label for="faceImage">人脸照片 *</label>
+                                <div class="file-upload-wrapper">
+                                    <input type="file" id="faceImage" name="faceImage" accept="image/*" required>
+                                    <div class="file-upload-placeholder">
+                                        <span class="upload-icon">📁</span>
+                                        <span>点击或拖拽照片到此处</span>
+                                    </div>
+                                </div>
+                                <div class="image-preview" id="imagePreview" style="display: none;">
+                                    <img id="previewImg" alt="预览">
+                                    <div class="preview-info">
+                                        <span id="previewQuality">质量: --</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="form-actions">
+                                <button type="submit" class="btn btn-primary">
+                                    <span class="btn-icon">✅</span>
+                                    <span>添加员工</span>
+                                </button>
+                                <button type="reset" class="btn btn-secondary">
+                                    <span class="btn-icon">🔄</span>
+                                    <span>重置</span>
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="employee-list-section card">
+                        <h2>员工列表</h2>
+                        <div class="list-header">
+                            <div class="search-bar">
+                                <input type="text" id="searchEmployee" placeholder="搜索员工...">
+                                <button class="btn btn-small btn-primary" onclick="app.refreshEmployees()">
+                                    <span class="btn-icon">🔄</span>
+                                </button>
+                            </div>
+                            <div class="list-stats" id="employeeStats">
+                                <span>总计: <strong id="totalEmployees">0</strong> 人</span>
+                            </div>
+                        </div>
+                        <div class="employee-list" id="employeeList">
+                            <p class="loading">加载中...</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="logs-tab" class="tab-content">
+                <div class="logs-container card">
+                    <div class="logs-header">
+                        <h2>访问记录</h2>
+                        <div class="filter-wrapper">
+                            <div class="time-filter">
+                                <div class="filter-group">
+                                    <label for="startTime">开始时间:</label>
+                                    <input type="datetime-local" id="startTime">
+                                </div>
+                                <div class="filter-group">
+                                    <label for="endTime">结束时间:</label>
+                                    <input type="datetime-local" id="endTime">
+                                </div>
+                                <div class="filter-group">
+                                    <label>快捷选择:</label>
+                                    <div class="quick-filters">
+                                        <button class="quick-filter-btn" data-range="today">今天</button>
+                                        <button class="quick-filter-btn" data-range="yesterday">昨天</button>
+                                        <button class="quick-filter-btn" data-range="7days">近7天</button>
+                                        <button class="quick-filter-btn" data-range="30days">近30天</button>
+                                        <button class="quick-filter-btn active" data-range="all">全部</button>
+                                    </div>
+                                </div>
+                                <div class="filter-group">
+                                    <button id="searchLogs" class="btn btn-primary">
+                                        <span class="btn-icon">🔍</span>
+                                        <span>查询</span>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="logs-summary" id="logsSummary">
+                        <div class="summary-item">
+                            <span class="summary-label">总访问:</span>
+                            <span class="summary-value" id="totalAccess">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">成功:</span>
+                            <span class="summary-value success" id="successAccess">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">失败:</span>
+                            <span class="summary-value failed" id="failedAccess">0</span>
+                        </div>
+                        <div class="summary-item">
+                            <span class="summary-label">成功率:</span>
+                            <span class="summary-value" id="successRate">0%</span>
+                        </div>
+                    </div>
+                    <div class="logs-table-container">
+                        <table class="logs-table">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>员工编号</th>
+                                    <th>姓名</th>
+                                    <th>状态</th>
+                                    <th>置信度</th>
+                                    <th>耗时</th>
+                                    <th>备注</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsBody">
+                                <tr>
+                                    <td colspan="7" class="loading">加载中...</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </section>
+
+            <section id="stats-tab" class="tab-content">
+                <div class="stats-container">
+                    <div class="stats-grid">
+                        <div class="stat-card card">
+                            <div class="stat-header">
+                                <span class="stat-icon">👥</span>
+                                <h3>员工统计</h3>
+                            </div>
+                            <div class="stat-content" id="employeeStatsCard">
+                                <div class="stat-item">
+                                    <span class="stat-label">总员工数</span>
+                                    <span class="stat-number" id="statTotalEmployees">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">已录人脸</span>
+                                    <span class="stat-number" id="statTotalFaces">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card card">
+                            <div class="stat-header">
+                                <span class="stat-icon">📊</span>
+                                <h3>今日访问</h3>
+                            </div>
+                            <div class="stat-content" id="todayStatsCard">
+                                <div class="stat-item">
+                                    <span class="stat-label">总访问</span>
+                                    <span class="stat-number" id="statTodayTotal">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">成功</span>
+                                    <span class="stat-number success" id="statTodaySuccess">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">成功率</span>
+                                    <span class="stat-number" id="statTodayRate">0%</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card card">
+                            <div class="stat-header">
+                                <span class="stat-icon">⚡</span>
+                                <h3>识别性能</h3>
+                            </div>
+                            <div class="stat-content" id="performanceStatsCard">
+                                <div class="stat-item">
+                                    <span class="stat-label">平均耗时</span>
+                                    <span class="stat-number" id="statAvgTime">0ms</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">P95耗时</span>
+                                    <span class="stat-number" id="statP95Time">0ms</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">总识别次数</span>
+                                    <span class="stat-number" id="statTotalRecognitions">0</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="stat-card card">
+                            <div class="stat-header">
+                                <span class="stat-icon">🛡️</span>
+                                <h3>系统状态</h3>
+                            </div>
+                            <div class="stat-content" id="systemStatsCard">
+                                <div class="stat-item">
+                                    <span class="stat-label">数据库</span>
+                                    <span class="stat-status healthy" id="statDbStatus">正常</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">识别服务</span>
+                                    <span class="stat-status healthy" id="statRecognitionStatus">正常</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">熔断状态</span>
+                                    <span class="stat-status healthy" id="statCircuitStatus">关闭</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="action-buttons">
+                        <button class="btn btn-info" onclick="app.refreshStats()">
+                            <span class="btn-icon">🔄</span>
+                            <span>刷新数据</span>
+                        </button>
+                        <button class="btn btn-warning" onclick="app.clearCaches()">
+                            <span class="btn-icon">🗑️</span>
+                            <span>清除缓存</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer>
+            <p>&copy; 2024 公司人脸识别系统 v2.0 | 高性能 · 高安全 · 高可靠</p>
+            <div class="footer-info">
+                <span>优化版: 帧降采样 + 跳帧检测 + LRU缓存 + 熔断器</span>
+            </div>
+        </footer>
+    </div>
+
+    <div id="toast" class="toast"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

@@ -1,0 +1,16 @@
+{
+  "servers": [
+    {
+      "server_id": "vm-001",
+      "ip": "192.168.1.10",
+      "user": "张三",
+      "description": "测试服务器"
+    },
+    {
+      "server_id": "vm-002",
+      "ip": "10.0.0.5",
+      "user": "李四",
+      "description": ""
+    }
+  ]
+}
