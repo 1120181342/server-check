@@ -3,7 +3,6 @@
     ref="containerRef" 
     class="virtual-list"
     :style="{ height: height + 'px' }"
-    @scroll="handleScroll"
   >
     <div 
       class="virtual-list-padding"
@@ -70,36 +69,35 @@ const visibleItems = computed<VirtualListItem<any>[]>(() => {
 
 const defaultItemKey = (item: any, index: number) => index
 
-const handleScroll = (e: Event) => {
-  const target = e.target as HTMLElement
-  scrollTop.value = target.scrollTop
-}
-
 let rafId: number | null = null
+let isScrolling = false
 
-const debouncedScroll = () => {
+const handleScroll = () => {
   if (rafId) {
     cancelAnimationFrame(rafId)
   }
+  
   rafId = requestAnimationFrame(() => {
     if (containerRef.value) {
       scrollTop.value = containerRef.value.scrollTop
     }
+    rafId = null
   })
 }
 
 onMounted(() => {
   if (containerRef.value) {
-    containerRef.value.addEventListener('scroll', debouncedScroll, { passive: true })
+    containerRef.value.addEventListener('scroll', handleScroll, { passive: true })
   }
 })
 
 onUnmounted(() => {
   if (containerRef.value) {
-    containerRef.value.removeEventListener('scroll', debouncedScroll)
+    containerRef.value.removeEventListener('scroll', handleScroll)
   }
   if (rafId) {
     cancelAnimationFrame(rafId)
+    rafId = null
   }
 })
 

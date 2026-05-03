@@ -111,8 +111,6 @@ const router = createRouter({
 })
 
 router.beforeEach((to, from, next) => {
-  console.time('router-beforeEach')
-  
   document.title = to.meta.title || '优选商城'
   
   const userStore = useUserStore()
@@ -141,8 +139,6 @@ router.beforeEach((to, from, next) => {
   else {
     next()
   }
-  
-  console.timeEnd('router-beforeEach')
 })
 
 router.afterEach((to, from) => {

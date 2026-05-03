@@ -9,6 +9,16 @@ import App from './App.vue'
 import router from './router'
 import './assets/css/global.css'
 
+if (!import.meta.env.DEV) {
+  const noop = () => {}
+  console.time = noop
+  console.timeEnd = noop
+  console.timeLog = noop
+  console.group = noop
+  console.groupEnd = noop
+  console.debug = noop
+}
+
 const app = createApp(App)
 
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {

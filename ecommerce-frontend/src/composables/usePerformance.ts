@@ -1,134 +1,166 @@
-import { ref, onMounted, onUnmounted } from 'vue'
+const ENABLE_PERFORMANCE_MONITOR = false
 
-export function usePerformance() {
-  const isDev = ref(import.meta.env.DEV)
-  const metrics = ref({
-    fps: 60,
-    memory: 0,
-    loadTime: 0
-  })
+const globalConfig = {
+  enabled: false,
+  sampleInterval: 2000,
+  logToConsole: false,
+  measureTimeEnabled: false
+}
 
+let globalFPSMonitor: {
+  fps: number
+  start: () => void
+  stop: () => void
+} | null = null
+
+let monitorRefCount = 0
+
+function createFPSMonitor() {
+  let fps = 60
   let frameCount = 0
-  let lastTime = performance.now()
+  let lastUpdateTime = performance.now()
   let animationId: number | null = null
+  let isRunning = false
 
-  const startFPSMonitor = () => {
-    if (!isDev.value) return
-
-    const measureFPS = () => {
-      frameCount++
-      const now = performance.now()
+  const measureFPS = () => {
+    if (!isRunning) return
+    
+    frameCount++
+    const now = performance.now()
+    
+    if (now - lastUpdateTime >= globalConfig.sampleInterval) {
+      fps = Math.round((frameCount * 1000) / (now - lastUpdateTime))
+      frameCount = 0
+      lastUpdateTime = now
       
-      if (now >= lastTime + 1000) {
-        metrics.value.fps = Math.round((frameCount * 1000) / (now - lastTime))
-        frameCount = 0
-        lastTime = now
+      if (globalConfig.logToConsole) {
+        console.log(`[Performance] FPS: ${fps}`)
       }
-      
-      animationId = requestAnimationFrame(measureFPS)
     }
     
     animationId = requestAnimationFrame(measureFPS)
   }
 
-  const stopFPSMonitor = () => {
-    if (animationId) {
-      cancelAnimationFrame(animationId)
-      animationId = null
-    }
-  }
-
-  const measureTime = (label: string, fn: () => void) => {
-    console.time(label)
-    const result = fn()
-    console.timeEnd(label)
-    return result
-  }
-
-  const measureTimeAsync = async (label: string, fn: () => Promise<any>) => {
-    console.time(label)
-    const result = await fn()
-    console.timeEnd(label)
-    return result
-  }
-
-  const getMemoryUsage = () => {
-    if ('memory' in performance) {
-      const mem = (performance as any).memory
-      metrics.value.memory = Math.round(mem.usedJSHeapSize / 1024 / 1024)
-    }
-    return metrics.value.memory
-  }
-
-  onMounted(() => {
-    if (isDev.value) {
-      metrics.value.loadTime = performance.now()
-      startFPSMonitor()
-      
-      console.log('%c[Performance Monitor] Started', 'color: #4CAF50; font-weight: bold;')
-    }
-  })
-
-  onUnmounted(() => {
-    stopFPSMonitor()
-  })
-
   return {
-    metrics,
-    isDev,
-    measureTime,
-    measureTimeAsync,
-    getMemoryUsage,
-    startFPSMonitor,
-    stopFPSMonitor
+    get fps() { return fps },
+    start() {
+      if (!isRunning && globalConfig.enabled) {
+        isRunning = true
+        frameCount = 0
+        lastUpdateTime = performance.now()
+        measureFPS()
+      }
+    },
+    stop() {
+      if (animationId !== null) {
+        cancelAnimationFrame(animationId)
+        animationId = null
+      }
+      isRunning = false
+    }
   }
 }
 
-export function createCache<T>(maxSize: number = 100) {
-  const cache = new Map<string, { value: T; timestamp: number }>()
-  const maxAge = 5 * 60 * 1000
+export function enablePerformanceMonitor(options?: {
+  sampleInterval?: number
+  logToConsole?: boolean
+  measureTimeEnabled?: boolean
+}) {
+  if (options?.sampleInterval !== undefined) {
+    globalConfig.sampleInterval = options.sampleInterval
+  }
+  if (options?.logToConsole !== undefined) {
+    globalConfig.logToConsole = options.logToConsole
+  }
+  if (options?.measureTimeEnabled !== undefined) {
+    globalConfig.measureTimeEnabled = options.measureTimeEnabled
+  }
+  
+  globalConfig.enabled = true
+}
+
+export function disablePerformanceMonitor() {
+  globalConfig.enabled = false
+  if (globalFPSMonitor) {
+    globalFPSMonitor.stop()
+  }
+}
+
+export function usePerformance() {
+  const isEnabled = ENABLE_PERFORMANCE_MONITOR && globalConfig.enabled
+
+  const metrics = {
+    get fps() {
+      return isEnabled && globalFPSMonitor ? globalFPSMonitor.fps : 60
+    },
+    get memory() {
+      if (!isEnabled) return 0
+      if ('memory' in performance) {
+        return Math.round((performance as any).memory.usedJSHeapSize / 1024 / 1024)
+      }
+      return 0
+    },
+    get loadTime() {
+      return performance.now()
+    }
+  }
+
+  const startFPSMonitor = () => {
+    if (!isEnabled) return
+    
+    monitorRefCount++
+    if (!globalFPSMonitor) {
+      globalFPSMonitor = createFPSMonitor()
+    }
+    globalFPSMonitor.start()
+  }
+
+  const stopFPSMonitor = () => {
+    if (!isEnabled) return
+    
+    monitorRefCount--
+    if (monitorRefCount <= 0 && globalFPSMonitor) {
+      globalFPSMonitor.stop()
+      monitorRefCount = 0
+    }
+  }
+
+  const measureTime = <T>(label: string, fn: () => T): T => {
+    if (!isEnabled || !globalConfig.measureTimeEnabled) {
+      return fn()
+    }
+    
+    const start = performance.now()
+    try {
+      return fn()
+    } finally {
+      const duration = performance.now() - start
+      console.log(`[Performance] ${label}: ${duration.toFixed(2)}ms`)
+    }
+  }
+
+  const measureTimeAsync = async <T>(label: string, fn: () => Promise<T>): Promise<T> => {
+    if (!isEnabled || !globalConfig.measureTimeEnabled) {
+      return fn()
+    }
+    
+    const start = performance.now()
+    try {
+      return await fn()
+    } finally {
+      const duration = performance.now() - start
+      console.log(`[Performance] ${label}: ${duration.toFixed(2)}ms`)
+    }
+  }
 
   return {
-    get(key: string): T | undefined {
-      const item = cache.get(key)
-      if (!item) return undefined
-      
-      if (Date.now() - item.timestamp > maxAge) {
-        cache.delete(key)
-        return undefined
-      }
-      
-      return item.value
-    },
-    
-    set(key: string, value: T): void {
-      if (cache.size >= maxSize) {
-        const firstKey = cache.keys().next().value
-        if (firstKey !== undefined) {
-          cache.delete(firstKey)
-        }
-      }
-      
-      cache.set(key, {
-        value,
-        timestamp: Date.now()
-      })
-    },
-    
-    has(key: string): boolean {
-      return this.get(key) !== undefined
-    },
-    
-    delete(key: string): boolean {
-      return cache.delete(key)
-    },
-    
-    clear(): void {
-      cache.clear()
-    },
-    
-    size(): number {
-      return cache.size
-    }
+    metrics,
+    isEnabled,
+    measureTime,
+    measureTimeAsync,
+    startFPSMonitor,
+    stopFPSMonitor,
+    enablePerformanceMonitor,
+    disablePerformanceMonitor
   }
 }
