@@ -792,6 +792,379 @@ class DatabaseManager:
             with self.get_session() as s:
                 _cleanup(s)
     
+    def get_server_history_alerts(self,
+                                   server_id: str,
+                                   days: int = 14,
+                                   session: Session = None) -> List[Dict[str, Any]]:
+        """获取服务器的历史告警数据
+        
+        用于告警预测分析
+        
+        Args:
+            server_id: 服务器ID
+            days: 获取最近多少天的数据
+            session: 可选的数据库会话
+            
+        Returns:
+            历史告警列表，每个元素包含 alertname, severity, starts_at, ends_at 等
+        """
+        def _get(session: Session) -> List[Dict]:
+            cutoff_time = datetime.utcnow() - timedelta(days=days)
+            
+            # 尝试通过server_id直接查询
+            alerts = session.query(Alert).filter(
+                Alert.server_id == server_id,
+                Alert.created_at >= cutoff_time
+            ).order_by(Alert.starts_at).all()
+            
+            # 如果没有找到，尝试通过instance字段匹配（可能包含IP地址）
+            if not alerts:
+                # 先获取服务器信息
+                server = session.query(Server).filter_by(server_id=server_id).first()
+                
+                if server:
+                    # 尝试通过网络信息中的IP地址匹配
+                    server_ips = []
+                    if server.networks_json:
+                        try:
+                            networks = json.loads(server.networks_json)
+                            for network_name, network_data in networks.items():
+                                for addr_info in network_data:
+                                    ip = addr_info.get('address')
+                                    if ip:
+                                        server_ips.append(ip)
+                        except:
+                            pass
+                    
+                    # 如果有IP地址，通过instance字段查询
+                    if server_ips:
+                        from sqlalchemy import or_
+                        conditions = []
+                        for ip in server_ips:
+                            conditions.append(Alert.instance.like(f'%{ip}%'))
+                            conditions.append(Alert.node.like(f'%{ip}%'))
+                        
+                        if conditions:
+                            alerts = session.query(Alert).filter(
+                                or_(*conditions),
+                                Alert.created_at >= cutoff_time
+                            ).order_by(Alert.starts_at).all()
+            
+            # 转换为字典格式
+            result = []
+            for alert in alerts:
+                alert_dict = {
+                    'id': alert.id,
+                    'alertname': alert.alertname,
+                    'severity': alert.severity,
+                    'status': alert.status,
+                    'instance': alert.instance,
+                    'job': alert.job,
+                    'node': alert.node,
+                    'namespace': alert.namespace,
+                    'pod': alert.pod,
+                    'container': alert.container,
+                    'summary': alert.summary,
+                    'description': alert.description,
+                    'message': alert.message,
+                    'starts_at': alert.starts_at,
+                    'ends_at': alert.ends_at,
+                    'duration_seconds': alert.duration_seconds,
+                    'source': alert.source,
+                    'fingerprint': alert.fingerprint,
+                    'created_at': alert.created_at,
+                    'updated_at': alert.updated_at
+                }
+                
+                # 解析JSON字段
+                if alert.labels_json:
+                    try:
+                        alert_dict['labels'] = json.loads(alert.labels_json)
+                    except:
+                        alert_dict['labels'] = {}
+                
+                if alert.annotations_json:
+                    try:
+                        alert_dict['annotations'] = json.loads(alert.annotations_json)
+                    except:
+                        alert_dict['annotations'] = {}
+                
+                result.append(alert_dict)
+            
+            return result
+        
+        if session:
+            return _get(session)
+        else:
+            with self.get_session() as s:
+                return _get(s)
+    
+    def get_all_alerts(self,
+                       days: int = 14,
+                       severity: List[str] = None,
+                       status: List[str] = None,
+                       session: Session = None) -> List[Dict[str, Any]]:
+        """获取所有告警数据
+        
+        Args:
+            days: 获取最近多少天的数据
+            severity: 严重级别过滤列表，如 ['critical', 'warning']
+            status: 状态过滤列表，如 ['firing', 'resolved']
+            session: 可选的数据库会话
+            
+        Returns:
+            告警列表
+        """
+        def _get(session: Session) -> List[Dict]:
+            cutoff_time = datetime.utcnow() - timedelta(days=days)
+            
+            query = session.query(Alert).filter(
+                Alert.created_at >= cutoff_time
+            )
+            
+            if severity:
+                query = query.filter(Alert.severity.in_(severity))
+            
+            if status:
+                query = query.filter(Alert.status.in_(status))
+            
+            alerts = query.order_by(Alert.starts_at).all()
+            
+            result = []
+            for alert in alerts:
+                alert_dict = {
+                    'id': alert.id,
+                    'server_id': alert.server_id,
+                    'alertname': alert.alertname,
+                    'severity': alert.severity,
+                    'status': alert.status,
+                    'instance': alert.instance,
+                    'job': alert.job,
+                    'node': alert.node,
+                    'namespace': alert.namespace,
+                    'pod': alert.pod,
+                    'container': alert.container,
+                    'summary': alert.summary,
+                    'description': alert.description,
+                    'message': alert.message,
+                    'starts_at': alert.starts_at,
+                    'ends_at': alert.ends_at,
+                    'duration_seconds': alert.duration_seconds,
+                    'source': alert.source,
+                    'fingerprint': alert.fingerprint,
+                    'created_at': alert.created_at,
+                    'updated_at': alert.updated_at
+                }
+                
+                if alert.labels_json:
+                    try:
+                        alert_dict['labels'] = json.loads(alert.labels_json)
+                    except:
+                        alert_dict['labels'] = {}
+                
+                if alert.annotations_json:
+                    try:
+                        alert_dict['annotations'] = json.loads(alert.annotations_json)
+                    except:
+                        alert_dict['annotations'] = {}
+                
+                result.append(alert_dict)
+            
+            return result
+        
+        if session:
+            return _get(session)
+        else:
+            with self.get_session() as s:
+                return _get(s)
+    
+    def get_alert_statistics(self,
+                            days: int = 14,
+                            session: Session = None) -> Dict[str, Any]:
+        """获取告警统计信息
+        
+        用于整体告警趋势分析
+        
+        Args:
+            days: 统计天数
+            session: 可选的数据库会话
+            
+        Returns:
+            统计信息字典
+        """
+        def _get(session: Session) -> Dict:
+            cutoff_time = datetime.utcnow() - timedelta(days=days)
+            
+            # 总告警数
+            total_count = session.query(Alert).filter(
+                Alert.created_at >= cutoff_time
+            ).count()
+            
+            # 按严重级别统计
+            from sqlalchemy import func
+            
+            severity_stats = session.query(
+                Alert.severity,
+                func.count(Alert.id).label('count')
+            ).filter(
+                Alert.created_at >= cutoff_time
+            ).group_by(Alert.severity).all()
+            
+            severity_distribution = {}
+            for severity, count in severity_stats:
+                severity_distribution[severity] = count
+            
+            # 按状态统计
+            status_stats = session.query(
+                Alert.status,
+                func.count(Alert.id).label('count')
+            ).filter(
+                Alert.created_at >= cutoff_time
+            ).group_by(Alert.status).all()
+            
+            status_distribution = {}
+            for status, count in status_stats:
+                status_distribution[status] = count
+            
+            # 按告警名称统计（前10个）
+            top_alerts = session.query(
+                Alert.alertname,
+                func.count(Alert.id).label('count')
+            ).filter(
+                Alert.created_at >= cutoff_time
+            ).group_by(Alert.alertname).order_by(
+                func.count(Alert.id).desc()
+            ).limit(10).all()
+            
+            top_alert_names = [
+                {'alertname': alertname, 'count': count}
+                for alertname, count in top_alerts
+            ]
+            
+            # 按天统计趋势
+            # 这需要更复杂的SQL，简化处理
+            
+            return {
+                'total_alerts': total_count,
+                'severity_distribution': severity_distribution,
+                'status_distribution': status_distribution,
+                'top_alert_names': top_alert_names,
+                'statistics_days': days,
+                'period_start': cutoff_time,
+                'period_end': datetime.utcnow()
+            }
+        
+        if session:
+            return _get(session)
+        else:
+            with self.get_session() as s:
+                return _get(s)
+    
+    def get_alert_prediction_history(self,
+                                      server_id: str,
+                                      days: int = 30,
+                                      session: Session = None) -> List[Dict[str, Any]]:
+        """获取告警预测历史
+        
+        用于分析预测准确性
+        
+        Args:
+            server_id: 服务器ID
+            days: 获取最近多少天的数据
+            session: 可选的数据库会话
+            
+        Returns:
+            预测历史列表
+        """
+        def _get(session: Session) -> List[Dict]:
+            cutoff_time = datetime.utcnow() - timedelta(days=days)
+            
+            # 查询该服务器的预测结果中与告警相关的
+            predictions = session.query(PredictionResult).filter(
+                PredictionResult.server_id == server_id,
+                PredictionResult.created_at >= cutoff_time,
+                PredictionResult.metric_name == 'alert_prediction'  # 假设使用这个特殊名称
+            ).order_by(PredictionResult.created_at).all()
+            
+            # 如果没有，返回所有预测（可能包含资源预测，可用于关联分析）
+            if not predictions:
+                predictions = session.query(PredictionResult).filter(
+                    PredictionResult.server_id == server_id,
+                    PredictionResult.created_at >= cutoff_time
+                ).order_by(PredictionResult.created_at).all()
+            
+            result = []
+            for pred in predictions:
+                pred_dict = {
+                    'id': pred.id,
+                    'server_id': pred.server_id,
+                    'metric_name': pred.metric_name,
+                    'prediction_method': pred.prediction_method,
+                    'trend': pred.trend,
+                    'confidence': pred.confidence,
+                    'slope': pred.slope,
+                    'overall_status': pred.overall_status,
+                    'risk_score': pred.risk_score,
+                    'recommendation': pred.recommendation,
+                    'history_data_points': pred.history_data_points,
+                    'forecast_days': pred.forecast_days,
+                    'created_at': pred.created_at
+                }
+                
+                # 解析JSON字段
+                if pred.predicted_values_json:
+                    try:
+                        pred_dict['predicted_values'] = json.loads(pred.predicted_values_json)
+                    except:
+                        pred_dict['predicted_values'] = []
+                
+                if pred.predicted_timestamps_json:
+                    try:
+                        pred_dict['predicted_timestamps'] = json.loads(pred.predicted_timestamps_json)
+                    except:
+                        pred_dict['predicted_timestamps'] = []
+                
+                if pred.warnings_json:
+                    try:
+                        pred_dict['warnings'] = json.loads(pred.warnings_json)
+                    except:
+                        pred_dict['warnings'] = []
+                
+                if pred.criticals_json:
+                    try:
+                        pred_dict['criticals'] = json.loads(pred.criticals_json)
+                    except:
+                        pred_dict['criticals'] = []
+                
+                result.append(pred_dict)
+            
+            return result
+        
+        if session:
+            return _get(session)
+        else:
+            with self.get_session() as s:
+                return _get(s)
+    
+    def save_alert_prediction(self,
+                              prediction_info: Dict[str, Any],
+                              session: Session = None) -> PredictionResult:
+        """保存告警预测结果
+        
+        这是save_prediction_result的便捷方法，专门用于告警预测
+        
+        Args:
+            prediction_info: 预测结果信息
+            session: 可选的数据库会话
+            
+        Returns:
+            PredictionResult对象
+        """
+        # 标记为告警预测
+        prediction_info['metric_name'] = 'alert_prediction'
+        
+        return self.save_prediction_result(prediction_info, session)
+    
     def close(self):
         """关闭数据库连接"""
         if self._engine:

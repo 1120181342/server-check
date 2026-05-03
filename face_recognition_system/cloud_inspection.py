@@ -40,7 +40,7 @@ try:
     from kubernetes_client import KubernetesClient
     from alert_system_client import AlertSystemClient
     from resource_monitor import ResourceMonitor
-    from predictor import TimeSeriesPredictor
+    from predictor import TimeSeriesPredictor, AlertPredictor
     from concurrent_engine import ConcurrentInspectionEngine, BatchProgressTracker
     from database_models import DatabaseManager
     MODULES_AVAILABLE = True
@@ -69,6 +69,7 @@ class CloudInspectionSystem:
         self.alert_client: Optional[AlertSystemClient] = None
         self.resource_monitor: Optional[ResourceMonitor] = None
         self.predictor: Optional[TimeSeriesPredictor] = None
+        self.alert_predictor: Optional[AlertPredictor] = None
         self.db_manager: Optional[DatabaseManager] = None
         
         self._initialized = False
@@ -95,6 +96,13 @@ class CloudInspectionSystem:
             forecast_days=self.config.PREDICTION_FORECAST_DAYS
         )
         logger.info("Predictor initialized")
+        
+        # 初始化告警预测器
+        self.alert_predictor = AlertPredictor(
+            history_days=14,  # 使用14天的历史告警数据
+            forecast_days=self.config.PREDICTION_FORECAST_DAYS
+        )
+        logger.info("Alert Predictor initialized")
         
         self._initialized = True
         logger.info("Cloud Inspection System initialized successfully")
@@ -323,12 +331,41 @@ class CloudInspectionSystem:
                         pred['metric_name'] = metric_name
                         self.db_manager.save_prediction_result(pred)
                     
-                    # 保存整体预测
-                    if 'overall_prediction' in prediction_result:
-                        overall = prediction_result['overall_prediction']
-                        overall['server_id'] = server_id
-                        overall['metric_name'] = 'overall'
-                        self.db_manager.save_prediction_result(overall)
+                    # 保存整体资源预测
+                    if 'overall_resource_prediction' in prediction_result and prediction_result['overall_resource_prediction']:
+                        overall_resource = prediction_result['overall_resource_prediction']
+                        overall_resource['server_id'] = server_id
+                        overall_resource['metric_name'] = 'overall_resource'
+                        self.db_manager.save_prediction_result(overall_resource)
+                    
+                    # 保存告警预测结果
+                    if 'alert_prediction' in prediction_result and prediction_result['alert_prediction']:
+                        alert_pred = prediction_result['alert_prediction']
+                        
+                        # 使用专门的方法保存告警预测
+                        if 'risk_assessment' in alert_pred:
+                            # 提取风险评估信息保存
+                            risk_assessment = alert_pred['risk_assessment']
+                            risk_assessment['server_id'] = server_id
+                            risk_assessment['metric_name'] = 'alert_prediction'
+                            risk_assessment['overall_status'] = risk_assessment.get('overall_risk_level', 'low')
+                            risk_assessment['risk_score'] = risk_assessment.get('risk_score', 0.0)
+                            risk_assessment['forecast_days'] = alert_pred.get('forecast_days', 3)
+                            
+                            # 保存预测的告警列表
+                            predictions = alert_pred.get('predictions', [])
+                            if predictions:
+                                risk_assessment['predicted_values'] = [
+                                    {
+                                        'alertname': p.get('alertname'),
+                                        'severity': p.get('severity'),
+                                        'confidence': p.get('confidence'),
+                                        'sources': p.get('sources', [])
+                                    }
+                                    for p in predictions
+                                ]
+                            
+                            self.db_manager.save_alert_prediction(risk_assessment)
             except Exception as e:
                 logger.error(f"Failed to perform prediction for {server_id}: {e}")
                 result['components']['prediction'] = {
@@ -362,6 +399,8 @@ class CloudInspectionSystem:
     def _perform_prediction(self, server_id: str) -> Dict[str, Any]:
         """执行预测分析
         
+        包括资源使用预测和告警预测
+        
         Args:
             server_id: 服务器ID
             
@@ -371,6 +410,10 @@ class CloudInspectionSystem:
         if not self.db_manager:
             logger.warning("No database manager, skipping prediction")
             return {'error': 'No database available'}
+        
+        # ============================================
+        # 1. 资源使用预测（现有功能）
+        # ============================================
         
         # 获取历史指标数据
         metrics_to_predict = [
@@ -400,7 +443,8 @@ class CloudInspectionSystem:
                 )
                 metric_predictions[metric_name] = prediction
         
-        # 执行整体预测
+        # 执行整体资源预测
+        overall_resource_prediction = None
         if history_metrics:
             # 定义阈值
             thresholds = {
@@ -409,23 +453,125 @@ class CloudInspectionSystem:
                 'disk_usage_percent': {'warning': 80.0, 'critical': 90.0}
             }
             
-            overall_prediction = self.predictor.predict_host_status(
+            overall_resource_prediction = self.predictor.predict_host_status(
                 server_id=server_id,
                 history_metrics=history_metrics,
                 thresholds=thresholds
             )
+        
+        # ============================================
+        # 2. 告警预测（新增功能）
+        # ============================================
+        
+        alert_prediction = None
+        
+        try:
+            # 获取历史告警数据（最近14天）
+            history_alerts = self.db_manager.get_server_history_alerts(
+                server_id=server_id,
+                days=14  # 使用14天的历史告警数据进行预测
+            )
             
-            return {
-                'metric_predictions': metric_predictions,
-                'overall_prediction': overall_prediction,
-                'history_data_points': {k: len(v) for k, v in history_metrics.items()}
+            logger.info(f"Found {len(history_alerts)} historical alerts for server {server_id}")
+            
+            # 执行告警预测
+            # 需要将资源预测结果转换为AlertPredictor需要的格式
+            resource_predictions_for_alert = {}
+            for metric_name, pred in metric_predictions.items():
+                resource_predictions_for_alert[metric_name] = pred
+            
+            # 定义资源阈值用于告警预测
+            resource_thresholds = {
+                'cpu_usage_percent': {'warning': 70.0, 'critical': 90.0},
+                'memory_usage_percent': {'warning': 75.0, 'critical': 90.0},
+                'disk_usage_percent': {'warning': 80.0, 'critical': 90.0}
             }
+            
+            # 执行告警预测
+            if self.alert_predictor:
+                alert_prediction = self.alert_predictor.predict_server_alerts(
+                    server_id=server_id,
+                    history_alerts=history_alerts,
+                    resource_predictions=resource_predictions_for_alert if resource_predictions_for_alert else None,
+                    resource_thresholds=resource_thresholds,
+                    steps=self.config.PREDICTION_FORECAST_DAYS
+                )
+                
+                logger.info(f"Alert prediction completed for server {server_id}: "
+                           f"risk_level={alert_prediction.get('risk_assessment', {}).get('overall_risk_level', 'unknown')}")
+        
+        except Exception as e:
+            logger.error(f"Failed to perform alert prediction for server {server_id}: {e}")
+            alert_prediction = {
+                'error': str(e),
+                'server_id': server_id,
+                'prediction_timestamp': datetime.now()
+            }
+        
+        # ============================================
+        # 3. 整合结果
+        # ============================================
+        
+        result = {
+            'metric_predictions': metric_predictions,
+            'overall_resource_prediction': overall_resource_prediction,
+            'alert_prediction': alert_prediction,
+            'history_data_points': {
+                'resource_metrics': {k: len(v) for k, v in history_metrics.items()},
+                'alerts_count': len(history_alerts) if 'history_alerts' in locals() else 0
+            },
+            'prediction_timestamp': datetime.now()
+        }
+        
+        # 计算综合预测状态
+        result['overall_prediction_status'] = self._calculate_combined_prediction_status(
+            overall_resource_prediction,
+            alert_prediction
+        )
+        
+        return result
+    
+    def _calculate_combined_prediction_status(self,
+                                               resource_prediction: Dict[str, Any],
+                                               alert_prediction: Dict[str, Any]) -> str:
+        """计算综合预测状态
+        
+        结合资源预测和告警预测，确定整体预测状态
+        
+        Args:
+            resource_prediction: 资源预测结果
+            alert_prediction: 告警预测结果
+            
+        Returns:
+            综合状态: normal, warning, critical, unknown
+        """
+        statuses = []
+        
+        # 检查资源预测状态
+        if resource_prediction:
+            resource_status = resource_prediction.get('overall_status', 'unknown')
+            if resource_status in ['critical', 'warning']:
+                statuses.append(resource_status)
+        
+        # 检查告警预测状态
+        if alert_prediction and 'risk_assessment' in alert_prediction:
+            risk_level = alert_prediction['risk_assessment'].get('overall_risk_level', 'low')
+            
+            # 将风险级别映射到状态
+            if risk_level == 'high':
+                statuses.append('critical')
+            elif risk_level == 'medium':
+                statuses.append('warning')
+        
+        # 确定最终状态
+        if 'critical' in statuses:
+            return 'critical'
+        elif 'warning' in statuses:
+            return 'warning'
+        elif statuses or (resource_prediction and resource_prediction.get('overall_status') == 'normal'):
+            return 'normal'
         else:
-            return {
-                'error': 'Insufficient history data for prediction',
-                'metric_predictions': {},
-                'overall_prediction': None
-            }
+            return 'unknown'
     
     def _calculate_overall_status(self, result: Dict[str, Any]) -> str:
         """计算整体状态
@@ -459,13 +605,35 @@ class CloudInspectionSystem:
         
         # 检查预测状态
         prediction = result.get('components', {}).get('prediction', {}).get('prediction', {})
-        overall_prediction = prediction.get('overall_prediction', {})
-        prediction_status = overall_prediction.get('overall_status', 'unknown')
         
-        if prediction_status == 'critical':
+        # 检查综合预测状态（新字段）
+        overall_prediction_status = prediction.get('overall_prediction_status', 'unknown')
+        
+        if overall_prediction_status == 'critical':
             statuses.append('critical')
-        elif prediction_status == 'warning':
+        elif overall_prediction_status == 'warning':
             statuses.append('warning')
+        
+        # 也检查旧的字段以保持兼容性
+        if overall_prediction_status == 'unknown':
+            # 检查整体资源预测
+            overall_resource_prediction = prediction.get('overall_resource_prediction', {})
+            resource_prediction_status = overall_resource_prediction.get('overall_status', 'unknown')
+            
+            if resource_prediction_status == 'critical':
+                statuses.append('critical')
+            elif resource_prediction_status == 'warning':
+                statuses.append('warning')
+            
+            # 检查告警预测
+            alert_prediction = prediction.get('alert_prediction', {})
+            if alert_prediction and 'risk_assessment' in alert_prediction:
+                risk_level = alert_prediction['risk_assessment'].get('overall_risk_level', 'low')
+                
+                if risk_level == 'high':
+                    statuses.append('critical')
+                elif risk_level == 'medium':
+                    statuses.append('warning')
         
         # 确定最终状态
         if 'critical' in statuses:
@@ -793,6 +961,159 @@ class CloudInspectionSystem:
             for task in failed_tasks:
                 error = task.get('error', '-')[:100] if task.get('error') else '-'
                 report_lines.append(f"| {task.get('server_id')} | {task.get('server_name') or '-'} | {task.get('status')} | {error} |")
+            report_lines.append(f"")
+        
+        # ============================================
+        # 新增：告警预测信息
+        # ============================================
+        
+        # 收集告警预测信息
+        high_risk_servers = []
+        medium_risk_servers = []
+        predicted_alerts_summary = {}
+        
+        for task in results.get('completed_tasks', []):
+            result = task.get('result', {})
+            prediction = result.get('components', {}).get('prediction', {}).get('prediction', {})
+            alert_prediction = prediction.get('alert_prediction', {})
+            
+            if alert_prediction and 'risk_assessment' in alert_prediction:
+                risk_assessment = alert_prediction['risk_assessment']
+                risk_level = risk_assessment.get('overall_risk_level', 'low')
+                
+                server_info = {
+                    'server_id': task.get('server_id'),
+                    'server_name': task.get('server_name'),
+                    'risk_score': risk_assessment.get('risk_score', 0.0),
+                    'critical_alerts_count': risk_assessment.get('critical_alerts_count', 0),
+                    'warning_alerts_count': risk_assessment.get('warning_alerts_count', 0),
+                    'recommendation': risk_assessment.get('recommendation', ''),
+                    'predicted_alerts': alert_prediction.get('predictions', [])
+                }
+                
+                if risk_level == 'high':
+                    high_risk_servers.append(server_info)
+                elif risk_level == 'medium':
+                    medium_risk_servers.append(server_info)
+                
+                # 统计预测的告警类型
+                for alert in alert_prediction.get('predictions', []):
+                    alertname = alert.get('alertname', 'Unknown')
+                    if alertname not in predicted_alerts_summary:
+                        predicted_alerts_summary[alertname] = {
+                            'count': 0,
+                            'critical_count': 0,
+                            'warning_count': 0,
+                            'servers': []
+                        }
+                    
+                    predicted_alerts_summary[alertname]['count'] += 1
+                    if alert.get('severity') == 'critical':
+                        predicted_alerts_summary[alertname]['critical_count'] += 1
+                    elif alert.get('severity') == 'warning':
+                        predicted_alerts_summary[alertname]['warning_count'] += 1
+                    
+                    if task.get('server_id') not in predicted_alerts_summary[alertname]['servers']:
+                        predicted_alerts_summary[alertname]['servers'].append(task.get('server_id'))
+        
+        # 添加告警预测报告
+        report_lines.extend([
+            f"",
+            f"## 告警预测分析",
+            f"",
+        ])
+        
+        # 告警预测统计
+        total_high_risk = len(high_risk_servers)
+        total_medium_risk = len(medium_risk_servers)
+        
+        report_lines.extend([
+            f"### 预测风险统计",
+            f"",
+            f"| 风险级别 | 服务器数量 | 说明 |",
+            f"|----------|------------|------|",
+            f"| 高风险 | {total_high_risk} | 预测未来可能发生严重告警 |",
+            f"| 中风险 | {total_medium_risk} | 预测未来可能发生警告告警 |",
+            f"| 低风险 | {summary.get('completed', 0) - total_high_risk - total_medium_risk} | 预测无重大告警风险 |",
+            f"",
+        ])
+        
+        # 高风险服务器列表
+        if high_risk_servers:
+            report_lines.extend([
+                f"### 高风险服务器 ({len(high_risk_servers)}台)",
+                f"",
+                f"| 服务器ID | 服务器名称 | 风险评分 | 预测严重告警 | 预测警告告警 |",
+                f"|----------|------------|----------|--------------|--------------|",
+            ])
+            
+            for s in high_risk_servers:
+                report_lines.append(
+                    f"| {s['server_id']} | {s['server_name'] or '-'} | {s['risk_score']} | "
+                    f"{s['critical_alerts_count']} | {s['warning_alerts_count']} |"
+                )
+            
+            # 添加高风险服务器的详细预测
+            report_lines.append(f"")
+            report_lines.append(f"#### 高风险服务器详细预测")
+            report_lines.append(f"")
+            
+            for s in high_risk_servers[:5]:  # 只显示前5个的详细信息
+                report_lines.append(f"**{s['server_name'] or s['server_id']}**")
+                report_lines.append(f"")
+                report_lines.append(f"- 风险评分: {s['risk_score']}")
+                report_lines.append(f"- 建议: {s['recommendation']}")
+                
+                if s['predicted_alerts']:
+                    report_lines.append(f"- 预测告警:")
+                    for alert in s['predicted_alerts']:
+                        severity_icon = '🔴' if alert.get('severity') == 'critical' else '🟡'
+                        report_lines.append(
+                            f"  - {severity_icon} {alert.get('alertname')} "
+                            f"(置信度: {alert.get('confidence', 0):.2%}, 来源: {', '.join(alert.get('sources', []))})"
+                        )
+                
+                report_lines.append(f"")
+        
+        # 中风险服务器列表
+        if medium_risk_servers:
+            report_lines.extend([
+                f"### 中风险服务器 ({len(medium_risk_servers)}台)",
+                f"",
+                f"| 服务器ID | 服务器名称 | 风险评分 | 预测警告告警 |",
+                f"|----------|------------|----------|--------------|",
+            ])
+            
+            for s in medium_risk_servers:
+                report_lines.append(
+                    f"| {s['server_id']} | {s['server_name'] or '-'} | {s['risk_score']} | "
+                    f"{s['warning_alerts_count']} |"
+                )
+            
+            report_lines.append(f"")
+        
+        # 预测告警类型统计
+        if predicted_alerts_summary:
+            report_lines.extend([
+                f"### 预测告警类型分布",
+                f"",
+                f"| 告警名称 | 预测发生次数 | 严重告警 | 警告告警 | 影响服务器数 |",
+                f"|----------|--------------|----------|----------|--------------|",
+            ])
+            
+            # 按影响服务器数排序
+            sorted_alerts = sorted(
+                predicted_alerts_summary.items(),
+                key=lambda x: len(x[1]['servers']),
+                reverse=True
+            )
+            
+            for alertname, stats in sorted_alerts:
+                report_lines.append(
+                    f"| {alertname} | {stats['count']} | {stats['critical_count']} | "
+                    f"{stats['warning_count']} | {len(stats['servers'])} |"
+                )
+            
             report_lines.append(f"")
         
         report_content = '\n'.join(report_lines)
